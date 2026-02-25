@@ -2274,17 +2274,22 @@ function renderTimeline(withdrawals) {
     
     withdrawals.forEach((w, index) => {
         const yearsFromNow = w.year - currentYear;
+        const isGoal = !!w.goalId;
+        const borderColor = isGoal ? '#3b82f6' : '#f59e0b';
+        const bgColor = isGoal ? 'rgba(59, 130, 246, 0.05)' : 'white';
+        
         html += `
-            <div style="display: grid; grid-template-columns: 80px 1fr auto auto; gap: 12px; align-items: center; margin-bottom: 16px; padding: 16px; background: white; border-radius: 12px; border: 2px solid #f59e0b; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: grid; grid-template-columns: 80px 1fr auto auto; gap: 12px; align-items: center; margin-bottom: 16px; padding: 16px; background: ${bgColor}; border-radius: 12px; border: 2px solid ${borderColor}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <div style="text-align: center;">
-                    <div style="font-size: 1.8em; font-weight: bold; color: #f59e0b;">${w.year}</div>
+                    <div style="font-size: 1.8em; font-weight: bold; color: ${borderColor};">${w.year}</div>
                     <div style="font-size: 0.75em; color: #666;">בעוד ${yearsFromNow} שנים</div>
                 </div>
                 <div>
                     <div style="font-size: 1.1em; font-weight: bold; color: #1f2937; margin-bottom: 4px;">
-                        ${w.goal}
+                        ${isGoal ? '🎯 ' : ''}${w.goal}
                     </div>
-                    <div style="font-size: 1.3em; color: #f59e0b; font-weight: bold;">
+                    ${isGoal ? '<div style="font-size: 0.8em; color: #3b82f6; margin-bottom: 4px;">← מקושר ליעד</div>' : ''}
+                    <div style="font-size: 1.3em; color: ${borderColor}; font-weight: bold;">
                         ${formatCurrency(w.amount)}
                     </div>
                 </div>
@@ -3161,7 +3166,7 @@ function generateReport() {
     <h2>💰 סיכום מצב נוכחי</h2>
     <div class="summary">
         <div class="card">
-            <div class="card-title">הון עצמאי היום</div>
+            <div class="card-title">הון עצמי היום</div>
             <div class="card-value">${formatCurrency(projection.todayTotal || 0)}</div>
         </div>
         <div class="card">
@@ -3455,7 +3460,9 @@ function addLifeGoal() {
     
     appData.goals.lifeGoals.push(goal);
     saveData();
+    syncLifeGoalsToRoadmap();
     renderLifeGoals();
+    showSaveNotification('✅ היעד נוסף ונשמר במפת דרכים!');
 }
 
 function removeLifeGoal(index) {
@@ -3463,7 +3470,9 @@ function removeLifeGoal(index) {
     
     appData.goals.lifeGoals.splice(index, 1);
     saveData();
+    syncLifeGoalsToRoadmap();
     renderLifeGoals();
+    showSaveNotification('✅ היעד נמחק מהיעדים ומהמפת דרכים');
 }
 
 function renderLifeGoals() {
@@ -3514,9 +3523,10 @@ function saveGoals() {
     goals.equity.isRealValue = document.getElementById('goalEquityIsReal').checked;
     
     saveData();
+    syncLifeGoalsToRoadmap();
     
     // Visual feedback
-    showSaveNotification('✅ היעדים נשמרו בהצלחה!');
+    showSaveNotification('✅ היעדים נשמרו ומסונכרנו עם מפת דרכים!');
 }
 
 // Update switchPanel to load goals
@@ -3718,7 +3728,7 @@ function renderGoalProgress() {
         html += `
             <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="font-weight: bold; font-size: 1.1em;">💎 הון עצמאי</div>
+                    <div style="font-weight: bold; font-size: 1.1em;">💎 הון עצמי</div>
                     <div style="font-size: 1.3em;">${icon}</div>
                 </div>
                 <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
@@ -3826,5 +3836,61 @@ function showSaveNotification(message) {
             document.body.removeChild(notification);
         }, 300);
     }, 3000);
+}
+
+
+// ==========================================
+// GOALS ↔ ROADMAP SYNC
+// ==========================================
+
+function syncLifeGoalsToRoadmap() {
+    const plan = getCurrentPlan();
+    if (!plan.withdrawals) {
+        plan.withdrawals = [];
+    }
+    
+    const goals = appData.goals.lifeGoals;
+    
+    // Mark existing goal-based withdrawals
+    const goalWithdrawalIds = new Set();
+    
+    goals.forEach(goal => {
+        // Find if this goal already has a withdrawal
+        const existingIndex = plan.withdrawals.findIndex(w => 
+            w.goalId === goal.id
+        );
+        
+        if (existingIndex >= 0) {
+            // Update existing withdrawal
+            plan.withdrawals[existingIndex] = {
+                year: goal.year,
+                amount: goal.amount,
+                goal: goal.name,
+                goalId: goal.id,
+                active: plan.withdrawals[existingIndex].active !== false
+            };
+            goalWithdrawalIds.add(goal.id);
+        } else {
+            // Create new withdrawal for this goal
+            plan.withdrawals.push({
+                year: goal.year,
+                amount: goal.amount,
+                goal: goal.name,
+                goalId: goal.id,
+                active: true
+            });
+            goalWithdrawalIds.add(goal.id);
+        }
+    });
+    
+    // Remove withdrawals for deleted goals
+    plan.withdrawals = plan.withdrawals.filter(w => {
+        // Keep if not a goal-based withdrawal
+        if (!w.goalId) return true;
+        // Keep if goal still exists
+        return goalWithdrawalIds.has(w.goalId);
+    });
+    
+    saveData();
 }
 

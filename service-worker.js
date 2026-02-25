@@ -1,5 +1,5 @@
 // Service Worker for Financial Planner PWA
-const CACHE_NAME = 'financial-planner-v25.2';  // ← v25.2 - Fix goals not saving!
+const CACHE_NAME = 'financial-planner-v26';  // ← v26 - Goals ↔ Roadmap sync (Phase 2.3)!
 const ASSETS_TO_CACHE = [
     '/index.html',
     '/style.css',
