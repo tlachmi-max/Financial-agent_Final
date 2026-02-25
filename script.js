@@ -3996,7 +3996,7 @@ function generateRecommendations(analysis) {
             // Additional needed
             const additionalMonthly = Math.max(0, totalMonthlyNeeded - currentMonthly);
             
-            if (additionalMonthly > 0 && additionalMonthly < 50000) {
+            if (additionalMonthly > 100 && additionalMonthly < 50000) {
                 recommendations.push({
                     type: 'pension',
                     icon: '💰',
@@ -4004,12 +4004,12 @@ function generateRecommendations(analysis) {
                     message: `כדי להגיע ליעד הקצבה, הפקד ${formatCurrency(Math.round(additionalMonthly / 100) * 100)} נוספים לחודש (סה"כ ${formatCurrency(Math.round((currentMonthly + additionalMonthly) / 100) * 100)}/חודש)`,
                     priority: 'high'
                 });
-            } else if (analysis.pension.percentage < 70) {
+            } else if (additionalMonthly > 100 && analysis.pension.percentage < 70) {
                 recommendations.push({
                     type: 'pension',
                     icon: '⚠️',
-                    title: 'יעד קצבה לא ריאלי',
-                    message: `הפער גדול מדי. שקול להקטין את יעד הקצבה או לדחות את גיל הפרישה`,
+                    title: 'יעד קצבה דורש מאמץ משמעותי',
+                    message: `כדי להגיע ליעד תצטרך להפקיד ${formatCurrency(Math.round(additionalMonthly / 100) * 100)} נוספים לחודש. שקול להקטין יעד או לדחות`,
                     priority: 'high'
                 });
             }
@@ -4050,7 +4050,7 @@ function generateRecommendations(analysis) {
             // Additional needed
             const additionalMonthly = Math.max(0, totalMonthlyNeeded - currentMonthly);
             
-            if (additionalMonthly > 0 && additionalMonthly < 100000) {
+            if (additionalMonthly > 100 && additionalMonthly < 100000) {
                 recommendations.push({
                     type: 'equity',
                     icon: '💎',
@@ -4058,7 +4058,7 @@ function generateRecommendations(analysis) {
                     message: `כדי להגיע ליעד ההון, הפקד ${formatCurrency(Math.round(additionalMonthly / 100) * 100)} נוספים לחודש (סה"כ ${formatCurrency(Math.round((currentMonthly + additionalMonthly) / 100) * 100)}/חודש)`,
                     priority: 'high'
                 });
-            } else if (analysis.equity.percentage < 70) {
+            } else if (additionalMonthly > 100 && analysis.equity.percentage < 70) {
                 // Even if unrealistic, give a practical number
                 const requiredMonthly = Math.round(additionalMonthly / 100) * 100;
                 recommendations.push({
@@ -4213,6 +4213,9 @@ function generateAnalysisReport() {
     const allInvestments = plan.investments || [];
     const nonPension = allInvestments.filter(inv => inv.type !== 'פנסיה');
     const currentEquity = nonPension.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    
+    // TEMPORARY DEBUG ALERT
+    alert(`DEBUG:\nכל ההשקעות: ${allInvestments.length}\nלא פנסיה: ${nonPension.length}\nהון נוכחי: ${currentEquity}`);
     
     console.log('=== EQUITY DEBUG ===');
     console.log('Total investments:', allInvestments.length);
