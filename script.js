@@ -1270,6 +1270,9 @@ function renderSummary() {
             </div>
         `;
     }).join('');
+    
+    // Render goal progress
+    renderGoalProgress();
 }
 
 // ==========================================
@@ -3487,4 +3490,238 @@ switchPanel = function(panelName) {
         loadGoals();
     }
 };
+
+
+// ==========================================
+// GAP ANALYSIS
+// ==========================================
+
+function analyzeGoals() {
+    const profile = appData.profile;
+    const goals = appData.goals;
+    const plan = getCurrentPlan();
+    
+    if (!profile.user.age || !goals) {
+        return null;
+    }
+    
+    const currentYear = new Date().getFullYear();
+    const results = {
+        pension: null,
+        equity: null,
+        lifeGoals: []
+    };
+    
+    // 1. Analyze Pension Goal
+    if (goals.retirement.monthlyPension && goals.retirement.userAge) {
+        const yearsUntilRetirement = goals.retirement.userAge - profile.user.age;
+        if (yearsUntilRetirement > 0) {
+            // Calculate projected pension
+            const pensions = plan.investments.filter(inv => inv.include && inv.type === 'פנסיה');
+            let projectedPension = 0;
+            
+            pensions.forEach(inv => {
+                const futureValue = calculateFV(
+                    inv.amount, 
+                    inv.monthly, 
+                    inv.returnRate, 
+                    yearsUntilRetirement,
+                    inv.feeDeposit || 0, 
+                    inv.feeAnnual || 0, 
+                    inv.subTracks
+                );
+                const monthlyPension = calculateMonthlyPension(futureValue, inv.gender || 'male');
+                projectedPension += monthlyPension;
+            });
+            
+            // Adjust for inflation if goal is in real terms
+            let targetPension = goals.retirement.monthlyPension;
+            if (goals.retirement.isRealValue) {
+                // Convert real to nominal
+                const INFLATION = 0.02;
+                targetPension = targetPension * Math.pow(1 + INFLATION, yearsUntilRetirement);
+            }
+            
+            const gap = targetPension - projectedPension;
+            const percentage = targetPension > 0 ? (projectedPension / targetPension) * 100 : 100;
+            
+            results.pension = {
+                target: goals.retirement.monthlyPension,
+                projected: projectedPension,
+                gap,
+                percentage: Math.min(percentage, 100),
+                yearsUntil: yearsUntilRetirement,
+                status: percentage >= 100 ? 'success' : percentage >= 80 ? 'warning' : 'danger'
+            };
+        }
+    }
+    
+    // 2. Analyze Equity Goal
+    if (goals.equity.targetAmount && goals.equity.targetYear) {
+        const yearsUntilTarget = goals.equity.targetYear - currentYear;
+        if (yearsUntilTarget > 0) {
+            // Calculate projected equity (non-pension)
+            const projection = calculateProjectionWithWithdrawals(
+                plan.investments,
+                yearsUntilTarget,
+                plan.withdrawals
+            );
+            
+            let projectedEquity = projection.finalNominal;
+            
+            // Adjust for inflation if goal is in real terms
+            let targetEquity = goals.equity.targetAmount;
+            if (goals.equity.isRealValue) {
+                // Target is in real terms, convert projected to real
+                const INFLATION = 0.02;
+                projectedEquity = projectedEquity / Math.pow(1 + INFLATION, yearsUntilTarget);
+            }
+            
+            const gap = targetEquity - projectedEquity;
+            const percentage = targetEquity > 0 ? (projectedEquity / targetEquity) * 100 : 100;
+            
+            results.equity = {
+                target: goals.equity.targetAmount,
+                projected: projectedEquity,
+                gap,
+                percentage: Math.min(percentage, 100),
+                yearsUntil: yearsUntilTarget,
+                status: percentage >= 100 ? 'success' : percentage >= 80 ? 'warning' : 'danger'
+            };
+        }
+    }
+    
+    // 3. Analyze Life Goals
+    goals.lifeGoals.forEach(goal => {
+        const yearsUntil = goal.year - currentYear;
+        if (yearsUntil > 0) {
+            const projection = calculateProjectionWithWithdrawals(
+                plan.investments,
+                yearsUntil,
+                plan.withdrawals
+            );
+            
+            let projectedAmount = projection.finalNominal;
+            let targetAmount = goal.amount;
+            
+            if (goal.isRealValue) {
+                const INFLATION = 0.02;
+                projectedAmount = projectedAmount / Math.pow(1 + INFLATION, yearsUntil);
+            }
+            
+            const gap = targetAmount - projectedAmount;
+            const percentage = targetAmount > 0 ? (projectedAmount / targetAmount) * 100 : 100;
+            
+            results.lifeGoals.push({
+                name: goal.name,
+                target: goal.amount,
+                projected: projectedAmount,
+                gap,
+                percentage: Math.min(percentage, 100),
+                yearsUntil,
+                year: goal.year,
+                status: percentage >= 100 ? 'success' : percentage >= 70 ? 'warning' : 'danger'
+            });
+        }
+    });
+    
+    return results;
+}
+
+function renderGoalProgress() {
+    const container = document.getElementById('goalProgress');
+    if (!container) return;
+    
+    const analysis = analyzeGoals();
+    if (!analysis) {
+        container.innerHTML = '<div class="alert alert-info">השלם את הפרופיל והיעדים כדי לראות התקדמות</div>';
+        return;
+    }
+    
+    let html = '<div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">';
+    html += '<h3 style="margin: 0 0 16px 0;">🎯 התקדמות ביעדים</h3>';
+    html += '<div style="display: grid; gap: 16px;">';
+    
+    // Pension
+    if (analysis.pension) {
+        const p = analysis.pension;
+        const color = p.status === 'success' ? '#10b981' : p.status === 'warning' ? '#f59e0b' : '#ef4444';
+        const icon = p.status === 'success' ? '✅' : p.status === 'warning' ? '🟡' : '🔴';
+        
+        html += `
+            <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-weight: bold; font-size: 1.1em;">💰 קצבה חודשית</div>
+                    <div style="font-size: 1.3em;">${icon}</div>
+                </div>
+                <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
+                    יעד: ${formatCurrency(p.target)}/חודש | צפי: ${formatCurrency(p.projected)}/חודש
+                </div>
+                <div style="background: rgba(0,0,0,0.2); height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 8px;">
+                    <div style="background: ${color}; height: 100%; width: ${p.percentage}%; transition: width 0.3s;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
+                    <span>${p.percentage.toFixed(0)}% הושלם</span>
+                    <span>${p.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(p.gap))}/חודש</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Equity
+    if (analysis.equity) {
+        const e = analysis.equity;
+        const color = e.status === 'success' ? '#10b981' : e.status === 'warning' ? '#f59e0b' : '#ef4444';
+        const icon = e.status === 'success' ? '✅' : e.status === 'warning' ? '🟡' : '🔴';
+        
+        html += `
+            <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-weight: bold; font-size: 1.1em;">💎 הון עצמאי</div>
+                    <div style="font-size: 1.3em;">${icon}</div>
+                </div>
+                <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
+                    יעד: ${formatCurrency(e.target)} | צפי: ${formatCurrency(e.projected)}
+                </div>
+                <div style="background: rgba(0,0,0,0.2); height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 8px;">
+                    <div style="background: ${color}; height: 100%; width: ${e.percentage}%; transition: width 0.3s;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
+                    <span>${e.percentage.toFixed(0)}% הושלם</span>
+                    <span>${e.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(e.gap))}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Life Goals
+    if (analysis.lifeGoals.length > 0) {
+        analysis.lifeGoals.forEach(lg => {
+            const color = lg.status === 'success' ? '#10b981' : lg.status === 'warning' ? '#f59e0b' : '#ef4444';
+            const icon = lg.status === 'success' ? '✅' : lg.status === 'warning' ? '🟡' : '🔴';
+            
+            html += `
+                <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="font-weight: bold; font-size: 1.1em;">🎯 ${lg.name}</div>
+                        <div style="font-size: 1.3em;">${icon}</div>
+                    </div>
+                    <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
+                        יעד: ${formatCurrency(lg.target)} ב-${lg.year} | צפי: ${formatCurrency(lg.projected)}
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 8px;">
+                        <div style="background: ${color}; height: 100%; width: ${lg.percentage}%; transition: width 0.3s;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
+                        <span>${lg.percentage.toFixed(0)}% הושלם</span>
+                        <span>${lg.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(lg.gap))}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += '</div></div>';
+    container.innerHTML = html;
+}
 
