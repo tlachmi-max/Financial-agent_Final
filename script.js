@@ -3708,7 +3708,7 @@ function renderGoalProgress() {
         html += `
             <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="font-weight: bold; font-size: 1.1em;">💰 קצבה חודשית</div>
+                    <div style="font-weight: bold; font-size: 1.1em;">💰 קצבה חודשית (ריאלי אחרי מס)</div>
                     <div style="font-size: 1.3em;">${icon}</div>
                 </div>
                 <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
@@ -3718,7 +3718,7 @@ function renderGoalProgress() {
                     <div style="background: ${color}; height: 100%; width: ${p.percentage}%; transition: width 0.3s;"></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
-                    <span>${p.percentage.toFixed(0)}% הושלם</span>
+                    <span>צפי: ${p.percentage.toFixed(0)}%</span>
                     <span>${p.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(p.gap))}/חודש</span>
                 </div>
             </div>
@@ -3744,7 +3744,7 @@ function renderGoalProgress() {
                     <div style="background: ${color}; height: 100%; width: ${e.percentage}%; transition: width 0.3s;"></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
-                    <span>${e.percentage.toFixed(0)}% הושלם</span>
+                    <span>${e.percentage.toFixed(0)}% צפי</span>
                     <span>${e.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(e.gap))}</span>
                 </div>
             </div>
@@ -3770,7 +3770,7 @@ function renderGoalProgress() {
                         <div style="background: ${color}; height: 100%; width: ${lg.percentage}%; transition: width 0.3s;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
-                        <span>${lg.percentage.toFixed(0)}% הושלם</span>
+                        <span>${lg.percentage.toFixed(0)}% צפי</span>
                         <span>${lg.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(lg.gap))}</span>
                     </div>
                 </div>
@@ -4130,20 +4130,33 @@ function generateAnalysisReport() {
     
     const yearlyData = [];
     
+    // Calculate current equity (year 0)
+    const currentEquity = plan.investments
+        .filter(inv => inv.include && inv.type !== 'פנסיה')
+        .reduce((sum, inv) => sum + inv.amount, 0);
+    
     for (let year = currentYear; year <= maxYear; year++) {
         const yearsFromNow = year - currentYear;
         
-        // Calculate equity before this year's withdrawals
-        // We need to calculate with withdrawals UP TO this year
-        const withdrawalsUpToThisYear = plan.withdrawals.filter(w => 
-            w.active !== false && w.year < year
-        );
+        let equityBeforeWithdrawals;
         
-        const projection = calculateProjectionWithWithdrawals(
-            plan.investments.filter(inv => inv.type !== 'פנסיה'),
-            yearsFromNow,
-            withdrawalsUpToThisYear
-        );
+        if (yearsFromNow === 0) {
+            // Current year - use actual current equity
+            equityBeforeWithdrawals = currentEquity;
+        } else {
+            // Future years - calculate with withdrawals UP TO this year
+            const withdrawalsUpToThisYear = plan.withdrawals.filter(w => 
+                w.active !== false && w.year < year
+            );
+            
+            const projection = calculateProjectionWithWithdrawals(
+                plan.investments.filter(inv => inv.type !== 'פנסיה'),
+                yearsFromNow,
+                withdrawalsUpToThisYear
+            );
+            
+            equityBeforeWithdrawals = projection.finalNominal;
+        }
         
         // Find withdrawals in this specific year
         const withdrawalsThisYear = plan.withdrawals.filter(w => 
@@ -4152,7 +4165,7 @@ function generateAnalysisReport() {
         const totalWithdrawals = withdrawalsThisYear.reduce((sum, w) => sum + w.amount, 0);
         
         // Calculate equity after withdrawals for this specific year
-        const equityAfter = projection.finalNominal - totalWithdrawals;
+        const equityAfter = equityBeforeWithdrawals - totalWithdrawals;
         
         // Check if this is a goal year
         const isGoalYear = goals.equity.targetYear === year;
@@ -4160,7 +4173,7 @@ function generateAnalysisReport() {
         
         yearlyData.push({
             year,
-            equityBefore: projection.finalNominal,
+            equityBefore: equityBeforeWithdrawals,
             withdrawals: totalWithdrawals,
             withdrawalsList: withdrawalsThisYear,
             equityAfter,
