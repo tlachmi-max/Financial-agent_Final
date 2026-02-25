@@ -129,7 +129,31 @@ function downloadChart(canvasId, chartName) {
 }
 
 // Global State
-let appData = { plans: [], currentPlanId: null, editingInvestmentIndex: -1 };
+let appData = { 
+    plans: [], 
+    currentPlanId: null, 
+    editingInvestmentIndex: -1,
+    profile: {
+        maritalStatus: 'married',
+        user: { name: '', age: null, gender: 'male' },
+        spouse: { name: '', age: null, gender: 'female' },
+        children: []
+    },
+    goals: {
+        retirement: {
+            userAge: null,
+            spouseAge: null,
+            monthlyPension: null,
+            isRealValue: true
+        },
+        equity: {
+            targetAmount: null,
+            targetYear: null,
+            isRealValue: true
+        },
+        lifeGoals: []
+    }
+};
 let currentSubTracks = [];
 let currentDreamSources = [];
 let charts = {};
@@ -203,6 +227,49 @@ function loadData() {
             // Ensure children array exists
             if (!loadedData.profile.children) {
                 loadedData.profile.children = [];
+            }
+            
+            // Preserve goals if it doesn't exist in loaded data
+            if (!loadedData.goals && appData.goals) {
+                loadedData.goals = appData.goals;
+            }
+            
+            // Ensure goals structure exists
+            if (!loadedData.goals) {
+                loadedData.goals = {
+                    retirement: {
+                        userAge: null,
+                        spouseAge: null,
+                        monthlyPension: null,
+                        isRealValue: true
+                    },
+                    equity: {
+                        targetAmount: null,
+                        targetYear: null,
+                        isRealValue: true
+                    },
+                    lifeGoals: []
+                };
+            }
+            
+            // Ensure goals sub-structures exist
+            if (!loadedData.goals.retirement) {
+                loadedData.goals.retirement = {
+                    userAge: null,
+                    spouseAge: null,
+                    monthlyPension: null,
+                    isRealValue: true
+                };
+            }
+            if (!loadedData.goals.equity) {
+                loadedData.goals.equity = {
+                    targetAmount: null,
+                    targetYear: null,
+                    isRealValue: true
+                };
+            }
+            if (!loadedData.goals.lifeGoals) {
+                loadedData.goals.lifeGoals = [];
             }
             
             appData = loadedData;
@@ -3176,23 +3243,7 @@ function generateReport() {
 // PROFILE MANAGEMENT
 // ==========================================
 
-// Initialize profile in appData
-if (!appData.profile) {
-    appData.profile = {
-        maritalStatus: 'married',
-        user: {
-            name: '',
-            age: null,
-            gender: 'male'
-        },
-        spouse: {
-            name: '',
-            age: null,
-            gender: 'female'
-        },
-        children: []
-    };
-}
+// Profile initialized in appData declaration above
 
 function updateMaritalStatus() {
     const status = document.querySelector('input[name="maritalStatus"]:checked').value;
@@ -3346,23 +3397,7 @@ switchPanel = function(panelName) {
 // GOALS MANAGEMENT
 // ==========================================
 
-// Initialize goals in appData
-if (!appData.goals) {
-    appData.goals = {
-        retirement: {
-            userAge: null,
-            spouseAge: null,
-            monthlyPension: null,
-            isRealValue: true
-        },
-        equity: {
-            targetAmount: null,
-            targetYear: null,
-            isRealValue: true
-        },
-        lifeGoals: []
-    };
-}
+// Goals initialized in appData declaration above
 
 function loadGoals() {
     const goals = appData.goals;

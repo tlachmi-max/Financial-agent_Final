@@ -1,5 +1,5 @@
 // Service Worker for Financial Planner PWA
-const CACHE_NAME = 'financial-planner-v25.1';  // ← v25.1 - Fix gap display + notifications!
+const CACHE_NAME = 'financial-planner-v25.2';  // ← v25.2 - Fix goals not saving!
 const ASSETS_TO_CACHE = [
     '/index.html',
     '/style.css',
