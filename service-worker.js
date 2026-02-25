@@ -1,5 +1,5 @@
 // Service Worker for Financial Planner PWA
-const CACHE_NAME = 'financial-planner-v30.1';  // ← v30.1 - Critical fixes!
+const CACHE_NAME = 'financial-planner-v30.2';  // ← v30.2 - Fix equity=0 & pension real!
 const ASSETS_TO_CACHE = [
     '/index.html',
     '/style.css',

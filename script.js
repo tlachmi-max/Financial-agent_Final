@@ -3575,7 +3575,7 @@ function analyzeGoals() {
         if (yearsUntilRetirement > 0) {
             // Calculate projected pension
             const pensions = plan.investments.filter(inv => inv.include && inv.type === 'פנסיה');
-            let projectedPension = 0;
+            let projectedPensionNominal = 0;
             
             pensions.forEach(inv => {
                 const futureValue = calculateFV(
@@ -3588,23 +3588,27 @@ function analyzeGoals() {
                     inv.subTracks
                 );
                 const monthlyPension = calculateMonthlyPension(futureValue, inv.gender || 'male');
-                projectedPension += monthlyPension;
+                projectedPensionNominal += monthlyPension;
             });
             
-            // Adjust for inflation if goal is in real terms
-            let targetPension = goals.retirement.monthlyPension;
-            if (goals.retirement.isRealValue) {
-                // Convert real to nominal
-                const INFLATION = 0.02;
-                targetPension = targetPension * Math.pow(1 + INFLATION, yearsUntilRetirement);
-            }
+            // Convert to real terms (purchasing power in today's money)
+            const INFLATION = 0.02;
+            const inflationFactor = Math.pow(1 + INFLATION, yearsUntilRetirement);
+            const projectedPensionReal = projectedPensionNominal / inflationFactor;
             
-            const gap = targetPension - projectedPension;
-            const percentage = targetPension > 0 ? (projectedPension / targetPension) * 100 : 100;
+            // Calculate net after tax (from real value)
+            const netAfterTax = calculateNetPension(projectedPensionReal);
+            const projectedPensionRealNet = netAfterTax.net;
+            
+            // Target is already in real terms
+            const targetPension = goals.retirement.monthlyPension;
+            
+            const gap = targetPension - projectedPensionRealNet;
+            const percentage = targetPension > 0 ? (projectedPensionRealNet / targetPension) * 100 : 100;
             
             results.pension = {
                 target: goals.retirement.monthlyPension,
-                projected: projectedPension,
+                projected: projectedPensionRealNet,
                 gap,
                 percentage: Math.min(percentage, 100),
                 yearsUntil: yearsUntilRetirement,
@@ -4130,10 +4134,12 @@ function generateAnalysisReport() {
     
     const yearlyData = [];
     
-    // Calculate current equity (year 0)
+    // Calculate current equity (year 0) - don't filter by include, just by type
     const currentEquity = plan.investments
-        .filter(inv => inv.include && inv.type !== 'פנסיה')
+        .filter(inv => inv.type !== 'פנסיה')
         .reduce((sum, inv) => sum + inv.amount, 0);
+    
+    console.log('Current equity calculation:', currentEquity, 'from', plan.investments.length, 'investments');
     
     for (let year = currentYear; year <= maxYear; year++) {
         const yearsFromNow = year - currentYear;
