@@ -4103,3 +4103,357 @@ function renderRecommendations() {
     container.innerHTML = html;
 }
 
+
+// ==========================================
+// VISUAL ANALYSIS REPORT
+// ==========================================
+
+function generateAnalysisReport() {
+    const plan = getCurrentPlan();
+    const profile = appData.profile;
+    const goals = appData.goals;
+    
+    if (!profile.user.age) {
+        alert('אנא השלם את הפרופיל תחילה');
+        return;
+    }
+    
+    // Calculate projection for each year
+    const currentYear = new Date().getFullYear();
+    const maxYear = Math.max(
+        goals.equity.targetYear || currentYear + 30,
+        goals.retirement.userAge ? currentYear + (goals.retirement.userAge - profile.user.age) : currentYear + 30,
+        ...(goals.lifeGoals.map(g => g.year) || [])
+    );
+    
+    const yearlyData = [];
+    
+    for (let year = currentYear; year <= maxYear; year++) {
+        const yearsFromNow = year - currentYear;
+        
+        // Calculate equity before withdrawals
+        const projection = calculateProjection(
+            plan.investments.filter(inv => inv.type !== 'פנסיה'),
+            yearsFromNow
+        );
+        
+        // Find withdrawals in this year
+        const withdrawalsThisYear = plan.withdrawals.filter(w => 
+            w.active !== false && w.year === year
+        );
+        const totalWithdrawals = withdrawalsThisYear.reduce((sum, w) => sum + w.amount, 0);
+        
+        // Calculate equity after withdrawals for this specific year
+        const equityAfter = projection.finalNominal - totalWithdrawals;
+        
+        // Check if this is a goal year
+        const isGoalYear = goals.equity.targetYear === year;
+        const goalTarget = isGoalYear ? goals.equity.targetAmount : null;
+        
+        yearlyData.push({
+            year,
+            equityBefore: projection.finalNominal,
+            withdrawals: totalWithdrawals,
+            withdrawalsList: withdrawalsThisYear,
+            equityAfter,
+            isGoalYear,
+            goalTarget,
+            gap: isGoalYear ? (equityAfter - goalTarget) : null
+        });
+    }
+    
+    // Generate HTML
+    const html = generateAnalysisHTML(yearlyData, goals, profile);
+    
+    // Open in new window
+    const reportWindow = window.open('', '_blank', 'width=1200,height=800');
+    reportWindow.document.write(html);
+    reportWindow.document.close();
+}
+
+function generateAnalysisHTML(yearlyData, goals, profile) {
+    const analysis = analyzeGoals();
+    const recommendations = generateRecommendations(analysis);
+    
+    // Find max value for chart scaling
+    const maxValue = Math.max(...yearlyData.map(d => d.equityBefore));
+    const chartHeight = 400;
+    
+    // Generate chart points
+    const points = yearlyData.map((d, i) => {
+        const x = (i / (yearlyData.length - 1)) * 100;
+        const y = chartHeight - (d.equityBefore / maxValue * (chartHeight - 40)) - 20;
+        return `${x},${y}`;
+    }).join(' ');
+    
+    return `
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>דוח ניתוח פיננסי מפורט</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+        }
+        .section-title {
+            font-size: 1.8em;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            position: relative;
+        }
+        svg { width: 100%; height: 450px; }
+        .grid-line { stroke: #e5e7eb; stroke-width: 1; }
+        .chart-line { fill: none; stroke: #667eea; stroke-width: 3; }
+        .goal-line { stroke: #10b981; stroke-width: 2; stroke-dasharray: 5,5; }
+        .withdrawal-marker { fill: #ef4444; }
+        .axis-label { font-size: 12px; fill: #666; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover { background: #f9fafb; }
+        .positive { color: #10b981; font-weight: bold; }
+        .negative { color: #ef4444; font-weight: bold; }
+        .withdrawal-row { background: #fef2f2; }
+        .goal-row { background: #f0fdf4; border: 2px solid #10b981; }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .summary-card {
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            border-right: 4px solid #667eea;
+        }
+        .summary-card-title {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .summary-card-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .recommendation {
+            padding: 16px;
+            margin: 12px 0;
+            border-radius: 8px;
+            border-right: 4px solid #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .recommendation.high { border-right-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .recommendation.low { border-right-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .rec-title { font-weight: bold; margin-bottom: 8px; }
+        @media print {
+            body { background: white; padding: 0; }
+            .no-print { display: none; }
+        }
+        .print-button {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+        }
+        .print-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 דוח ניתוח פיננסי מפורט</h1>
+        <div class="subtitle">
+            ${profile.user.name} | ${new Date().toLocaleDateString('he-IL')}
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="section">
+            <div class="section-title">💎 סיכום מצב נוכחי</div>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-card-title">הון עצמי היום</div>
+                    <div class="summary-card-value">${formatCurrency(yearlyData[0].equityBefore)}</div>
+                </div>
+                ${goals.equity.targetYear ? `
+                <div class="summary-card">
+                    <div class="summary-card-title">יעד ב-${goals.equity.targetYear}</div>
+                    <div class="summary-card-value">${formatCurrency(goals.equity.targetAmount)}</div>
+                </div>
+                ` : ''}
+                ${analysis && analysis.equity ? `
+                <div class="summary-card">
+                    <div class="summary-card-title">צפי ב-${goals.equity.targetYear}</div>
+                    <div class="summary-card-value ${analysis.equity.gap < 0 ? 'positive' : 'negative'}">
+                        ${formatCurrency(analysis.equity.projected)}
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">פער</div>
+                    <div class="summary-card-value ${analysis.equity.gap < 0 ? 'positive' : 'negative'}">
+                        ${analysis.equity.gap < 0 ? 'עודף' : 'חסר'} ${formatCurrency(Math.abs(analysis.equity.gap))}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        
+        <!-- Timeline Chart -->
+        <div class="section">
+            <div class="section-title">📈 גרף צמיחת הון לאורך זמן</div>
+            <div class="chart-container">
+                <svg viewBox="0 0 100 ${chartHeight}" preserveAspectRatio="none">
+                    <!-- Grid lines -->
+                    ${[0, 25, 50, 75, 100].map(y => `
+                        <line x1="0" y1="${y * chartHeight / 100}" x2="100" y2="${y * chartHeight / 100}" class="grid-line"/>
+                        <text x="2" y="${y * chartHeight / 100 - 5}" class="axis-label">${formatCurrency(maxValue * (1 - y/100))}</text>
+                    `).join('')}
+                    
+                    <!-- Main equity line -->
+                    <polyline points="${points}" class="chart-line"/>
+                    
+                    <!-- Goal line -->
+                    ${goals.equity.targetYear ? `
+                        <line x1="0" y1="${chartHeight - (goals.equity.targetAmount / maxValue * (chartHeight - 40)) - 20}" 
+                              x2="100" y2="${chartHeight - (goals.equity.targetAmount / maxValue * (chartHeight - 40)) - 20}" 
+                              class="goal-line"/>
+                    ` : ''}
+                    
+                    <!-- Withdrawal markers -->
+                    ${yearlyData.map((d, i) => {
+                        if (d.withdrawals > 0) {
+                            const x = (i / (yearlyData.length - 1)) * 100;
+                            const y = chartHeight - (d.equityBefore / maxValue * (chartHeight - 40)) - 20;
+                            return `
+                                <circle cx="${x}" cy="${y}" r="1.5" class="withdrawal-marker"/>
+                                <text x="${x}" y="${y - 8}" class="axis-label" text-anchor="middle">${d.year}</text>
+                            `;
+                        }
+                        return '';
+                    }).join('')}
+                </svg>
+                <div style="margin-top: 20px; display: flex; gap: 30px; justify-content: center; font-size: 0.9em;">
+                    <div><span style="color: #667eea;">━━</span> הון עצמי צפוי</div>
+                    <div><span style="color: #10b981;">- - -</span> יעד הון</div>
+                    <div><span style="color: #ef4444;">●</span> משיכות</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Yearly Table -->
+        <div class="section">
+            <div class="section-title">📋 פירוט שנתי</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>שנה</th>
+                        <th>הון לפני משיכות</th>
+                        <th>משיכות</th>
+                        <th>הון אחרי משיכות</th>
+                        <th>יעד</th>
+                        <th>פער</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${yearlyData.filter((d, i) => i % 5 === 0 || d.withdrawals > 0 || d.isGoalYear).map(d => `
+                        <tr class="${d.withdrawals > 0 ? 'withdrawal-row' : ''} ${d.isGoalYear ? 'goal-row' : ''}">
+                            <td><strong>${d.year}</strong></td>
+                            <td>${formatCurrency(d.equityBefore)}</td>
+                            <td class="${d.withdrawals > 0 ? 'negative' : ''}">${d.withdrawals > 0 ? formatCurrency(d.withdrawals) : '-'}</td>
+                            <td>${formatCurrency(d.equityAfter)}</td>
+                            <td>${d.isGoalYear ? formatCurrency(d.goalTarget) : '-'}</td>
+                            <td class="${d.gap !== null ? (d.gap > 0 ? 'positive' : 'negative') : ''}">
+                                ${d.gap !== null ? (d.gap > 0 ? 'עודף ' : 'חסר ') + formatCurrency(Math.abs(d.gap)) : '-'}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Recommendations -->
+        ${recommendations.length > 0 ? `
+        <div class="section">
+            <div class="section-title">💡 המלצות אישיות</div>
+            ${recommendations.map(rec => `
+                <div class="recommendation ${rec.priority}">
+                    <div class="rec-title">${rec.icon} ${rec.title}</div>
+                    <div>${rec.message}</div>
+                </div>
+            `).join('')}
+        </div>
+        ` : ''}
+    </div>
+    
+    <button class="print-button no-print" onclick="window.print()">🖨️ הדפס/שמור PDF</button>
+</body>
+</html>
+    `;
+}
+

@@ -1,5 +1,5 @@
 // Service Worker for Financial Planner PWA
-const CACHE_NAME = 'financial-planner-v27';  // ← v27 - Recommendations engine (Phase 2.2)!
+const CACHE_NAME = 'financial-planner-v28';  // ← v28 - Visual Analysis Report (Phase 2.4)!
 const ASSETS_TO_CACHE = [
     '/index.html',
     '/style.css',
