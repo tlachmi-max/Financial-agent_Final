@@ -645,8 +645,14 @@ function removeSubTrack(index) {
 
 function editSubTrack(index) {
     const st = currentSubTracks[index];
+    if (!st) return;
+    
+    // Populate the form fields
+    document.getElementById('subTrackType').value = st.type || '';
     document.getElementById('subTrackPercent').value = st.percent;
     document.getElementById('subTrackReturn').value = st.returnRate;
+    
+    // Remove from array so user can re-add with changes
     currentSubTracks.splice(index, 1);
     renderSubTracks();
     updateWeightedReturn();
@@ -4224,6 +4230,16 @@ function generateAnalysisHTML(yearlyData, goals, profile) {
         .filter(inv => inv.type !== 'פנסיה')
         .reduce((sum, inv) => sum + (inv.amount || 0), 0);
     
+    // Calculate average fees (weighted by amount)
+    const allInvestments = plan.investments.filter(inv => inv.type !== 'פנסיה');
+    const totalAmount = allInvestments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    const avgFeeAnnual = totalAmount > 0 
+        ? allInvestments.reduce((sum, inv) => sum + (inv.amount * (inv.feeAnnual || 0)), 0) / totalAmount
+        : 0;
+    const avgFeeDeposit = totalAmount > 0
+        ? allInvestments.reduce((sum, inv) => sum + (inv.amount * (inv.feeDeposit || 0)), 0) / totalAmount
+        : 0;
+    
     // Use yearlyData[0] ONLY if it's actually valid (not 0)
     const currentEquityDisplay = (yearlyData && yearlyData.length > 0 && yearlyData[0].equityBefore > 0) 
         ? yearlyData[0].equityBefore 
@@ -4419,6 +4435,13 @@ function generateAnalysisHTML(yearlyData, goals, profile) {
                     </div>
                 </div>
                 ` : ''}
+                <div class="summary-card">
+                    <div class="summary-card-title">ממוצע דמי ניהול</div>
+                    <div class="summary-card-value" style="font-size: 1.5em;">
+                        <div>צבירה: ${avgFeeAnnual.toFixed(2)}%</div>
+                        <div style="font-size: 0.7em; margin-top: 4px;">הפקדה: ${avgFeeDeposit.toFixed(2)}%</div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -4473,24 +4496,31 @@ function generateAnalysisHTML(yearlyData, goals, profile) {
                         <th>שנה</th>
                         <th>הון לפני משיכות</th>
                         <th>משיכות</th>
+                        <th>מטרה</th>
                         <th>הון אחרי משיכות</th>
                         <th>יעד</th>
                         <th>פער</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${yearlyData.filter((d, i) => i % 5 === 0 || d.withdrawals > 0 || d.isGoalYear).map(d => `
+                    ${yearlyData.filter((d, i) => i % 5 === 0 || d.withdrawals > 0 || d.isGoalYear).map(d => {
+                        const purposes = d.withdrawalsList && d.withdrawalsList.length > 0 
+                            ? d.withdrawalsList.map(w => w.goal).join(', ')
+                            : '-';
+                        return `
                         <tr class="${d.withdrawals > 0 ? 'withdrawal-row' : ''} ${d.isGoalYear ? 'goal-row' : ''}">
                             <td><strong>${d.year}</strong></td>
                             <td>${formatCurrency(d.equityBefore)}</td>
                             <td class="${d.withdrawals > 0 ? 'negative' : ''}">${d.withdrawals > 0 ? formatCurrency(d.withdrawals) : '-'}</td>
+                            <td style="font-size: 0.9em;">${purposes}</td>
                             <td>${formatCurrency(d.equityAfter)}</td>
                             <td>${d.isGoalYear ? formatCurrency(d.goalTarget) : '-'}</td>
                             <td class="${d.gap !== null ? (d.gap > 0 ? 'positive' : 'negative') : ''}">
                                 ${d.gap !== null ? (d.gap > 0 ? 'עודף ' : 'חסר ') + formatCurrency(Math.abs(d.gap)) : '-'}
                             </td>
                         </tr>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
