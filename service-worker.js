@@ -1,5 +1,5 @@
 // Service Worker for Financial Planner PWA
-const CACHE_NAME = 'financial-planner-v31';  // ← v31 - Fix subtrack + table + fees!
+const CACHE_NAME = 'financial-planner-v31.1';  // ← v31.1 - Remove alert + add charts note!
 const ASSETS_TO_CACHE = [
     '/index.html',
     '/style.css',

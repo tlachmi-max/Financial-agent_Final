@@ -4153,8 +4153,6 @@ function generateAnalysisReport() {
     const nonPension = allInvestments.filter(inv => inv.type !== 'פנסיה');
     const currentEquity = nonPension.reduce((sum, inv) => sum + (inv.amount || 0), 0);
     
-    // TEMPORARY DEBUG ALERT
-    alert(`DEBUG:\nכל ההשקעות: ${allInvestments.length}\nלא פנסיה: ${nonPension.length}\nהון נוכחי: ${currentEquity}`);
     
     console.log('=== EQUITY DEBUG ===');
     console.log('Total investments:', allInvestments.length);
@@ -4523,6 +4521,15 @@ function generateAnalysisHTML(yearlyData, goals, profile) {
                     }).join('')}
                 </tbody>
             </table>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="section">
+            <div class="section-title">📊 גרפים</div>
+            <p style="text-align: center; padding: 40px; background: #f9fafb; border-radius: 12px; color: #666;">
+                הגרפים זמינים בטאב "גרפים" באפליקציה<br>
+                (Chart.js נדרש להצגה אינטראקטיבית)
+            </p>
         </div>
         
         <!-- Recommendations -->
