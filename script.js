@@ -767,7 +767,7 @@ function saveInvestment(event) {
         include: document.getElementById('invInclude').checked,
         gender: document.getElementById('invGender').value,
         age: parseInt(document.getElementById('invAge').value) || null,
-        spouse: document.getElementById('invSpouse')?.value || 'husband', // Default to husband
+        spouse: document.getElementById('invSpouse') && document.getElementById('invSpouse').value || 'husband', // Default to husband
         subTracks: [...currentSubTracks]
     };
     
@@ -2791,7 +2791,7 @@ function renderPensionList(containerId, pensions, gender) {
         return;
     }
     
-    const years = parseInt(document.getElementById('pensionYears')?.value) || 20;
+    const years = parseInt(document.getElementById('pensionYears') && document.getElementById('pensionYears').value) || 20;
     const currentYear = new Date().getFullYear();
     
     let html = '';
@@ -2835,7 +2835,7 @@ function renderPensionList(containerId, pensions, gender) {
 }
 
 function calculateMonthlyPensions(husbandPensions, wifePensions) {
-    const years = parseInt(document.getElementById('pensionYears')?.value) || 20;
+    const years = parseInt(document.getElementById('pensionYears') && document.getElementById('pensionYears').value) || 20;
     
     let husbandTotalNominal = 0;
     let wifeTotalNominal = 0;
@@ -3088,7 +3088,7 @@ function generateReport() {
         return;
     }
     
-    const years = parseInt(document.getElementById('sumYears')?.value) || 20;
+    const years = parseInt(document.getElementById('sumYears') && document.getElementById('sumYears').value) || 20;
     const currentYear = new Date().getFullYear();
     
     // Calculate projection

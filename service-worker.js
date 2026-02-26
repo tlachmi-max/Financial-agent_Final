@@ -1,12 +1,10 @@
 // Service Worker for Financial Planner PWA
-const CACHE_NAME = 'financial-planner-v33';  // ← v33 - Add avg fees & return to summary!
+const CACHE_NAME = 'financial-planner-v34';  // ← v34 - Fix PWA compatibility!
 const ASSETS_TO_CACHE = [
     '/index.html',
     '/style.css',
     '/script.js',
-    '/cloud-sync.js',
-    '/manifest.json',
-    '/icon-512.png'
+    '/manifest.json'
 ];
 
 // Install event - cache assets
