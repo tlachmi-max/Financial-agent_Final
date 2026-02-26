@@ -4,7 +4,7 @@
 // Version: 3.2.0 - Pension Separate + iPhone Fix + Auto-fill
 // ==========================================
 
-console.log('🚀 Financial Planner Pro v3.2.0 Loading...');
+console.log('🚀 Financial Planner Pro v3.3.0 Loading...');
 console.log('✅ Pension separate from capital');
 console.log('✅ iPhone plus button fixed');
 console.log('✅ Auto-fill return rate from dropdown');
@@ -1933,6 +1933,59 @@ function escapeHtml(text) {
 }
 
 // Load tasks on init
+// ==========================================
+// SERVICE WORKER UPDATE CHECKER
+// ==========================================
+
+if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    
+    // Check for updates every 60 seconds
+    setInterval(() => {
+        navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) reg.update();
+        });
+    }, 60000);
+    
+    // Listen for new service worker
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        
+        console.log('🔄 New version detected! Reloading...');
+        
+        // Show update message
+        const updateMsg = document.createElement('div');
+        updateMsg.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            font-weight: bold;
+            text-align: center;
+        `;
+        updateMsg.textContent = '🔄 מעדכן לגרסה חדשה...';
+        document.body.appendChild(updateMsg);
+        
+        setTimeout(() => window.location.reload(), 500);
+    });
+    
+    // Force update on load
+    navigator.serviceWorker.ready.then(registration => {
+        registration.update();
+    });
+}
+
+// ==========================================
+// INITIALIZE ON LOAD
+// ==========================================
+
 document.addEventListener('DOMContentLoaded', () => {
     loadTasks();
     if (document.getElementById('tasksList')) {
