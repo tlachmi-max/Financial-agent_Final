@@ -221,16 +221,75 @@ function createDefaultPlan() {
         id: Date.now().toString(),
         name: 'תוכנית ראשית',
         investments: [],
-        dreams: [],
+        withdrawals: [],
+        profile: {
+            maritalStatus: 'married',
+            user: { name: '', age: null, gender: 'male' },
+            spouse: { name: '', age: null, gender: 'female' },
+            children: []
+        },
+        goals: {
+            retirement: {
+                userAge: null,
+                spouseAge: null,
+                monthlyPension: null,
+                isRealValue: true
+            },
+            equity: {
+                targetAmount: null,
+                targetYear: null,
+                isRealValue: true
+            },
+            lifeGoals: []
+        },
         createdAt: new Date().toISOString()
     };
     appData.plans.push(plan);
     appData.currentPlanId = plan.id;
+    
+    // Migrate old data if exists
+    if (appData.profile && Object.keys(appData.profile.user).some(k => appData.profile.user[k])) {
+        plan.profile = appData.profile;
+    }
+    if (appData.goals && (appData.goals.lifeGoals.length > 0 || appData.goals.equity.targetAmount)) {
+        plan.goals = appData.goals;
+    }
+    
     saveData();
 }
 
 function getCurrentPlan() {
-    return appData.plans.find(p => p.id === appData.currentPlanId) || appData.plans[0];
+    const plan = appData.plans.find(p => p.id === appData.currentPlanId) || appData.plans[0];
+    
+    // Ensure plan has required structures
+    if (!plan.profile) {
+        plan.profile = {
+            maritalStatus: 'married',
+            user: { name: '', age: null, gender: 'male' },
+            spouse: { name: '', age: null, gender: 'female' },
+            children: []
+        };
+    }
+    if (!plan.goals) {
+        plan.goals = {
+            retirement: { userAge: null, spouseAge: null, monthlyPension: null, isRealValue: true },
+            equity: { targetAmount: null, targetYear: null, isRealValue: true },
+            lifeGoals: []
+        };
+    }
+    if (!plan.withdrawals) {
+        plan.withdrawals = [];
+    }
+    
+    return plan;
+}
+
+function getCurrentProfile() {
+    return getCurrentPlan().profile;
+}
+
+function getCurrentGoals() {
+    return getCurrentPlan().goals;
 }
 
 // ==========================================
@@ -1806,8 +1865,8 @@ function exportToExcel() {
 
 function exportExcel() {
     const plan = getCurrentPlan();
-    const profile = appData.profile;
-    const goals = appData.goals;
+    const profile = plan.profile;
+    const goals = plan.goals;
     
     const wb = XLSX.utils.book_new();
     
@@ -1942,10 +2001,10 @@ function importExcel(event) {
                     const field = row['שדה'];
                     const value = row['ערך'];
                     
-                    if (field === 'שם משתמש') appData.profile.user.name = value;
-                    if (field === 'גיל משתמש') appData.profile.user.age = parseInt(value) || null;
-                    if (field === 'שם בן/בת זוג') appData.profile.spouse.name = value;
-                    if (field === 'גיל בן/בת זוג') appData.profile.spouse.age = parseInt(value) || null;
+                    if (field === 'שם משתמש') plan.profile.user.name = value;
+                    if (field === 'גיל משתמש') plan.profile.user.age = parseInt(value) || null;
+                    if (field === 'שם בן/בת זוג') plan.profile.spouse.name = value;
+                    if (field === 'גיל בן/בת זוג') plan.profile.spouse.age = parseInt(value) || null;
                     
                     if (field.startsWith('ילד ')) {
                         const match = field.match(/ילד (\d+) - (שם|גיל)/);
@@ -1953,12 +2012,12 @@ function importExcel(event) {
                             const index = parseInt(match[1]) - 1;
                             const prop = match[2];
                             
-                            if (!appData.profile.children[index]) {
-                                appData.profile.children[index] = { name: '', age: null };
+                            if (!plan.profile.children[index]) {
+                                plan.profile.children[index] = { name: '', age: null };
                             }
                             
-                            if (prop === 'שם') appData.profile.children[index].name = value;
-                            if (prop === 'גיל') appData.profile.children[index].age = parseInt(value) || null;
+                            if (prop === 'שם') plan.profile.children[index].name = value;
+                            if (prop === 'גיל') plan.profile.children[index].age = parseInt(value) || null;
                         }
                     }
                 });
@@ -1970,10 +2029,10 @@ function importExcel(event) {
                 const retData = XLSX.utils.sheet_to_json(retSheet);
                 if (retData.length > 0) {
                     const row = retData[0];
-                    appData.goals.retirement.userAge = parseInt(row['גיל משתמש']) || null;
-                    appData.goals.retirement.spouseAge = parseInt(row['גיל בן/בת זוג']) || null;
-                    appData.goals.retirement.monthlyPension = parseFloat(row['קצבה חודשית']) || null;
-                    appData.goals.retirement.isRealValue = row['ערך ריאלי'] === 'כן';
+                    plan.goals.retirement.userAge = parseInt(row['גיל משתמש']) || null;
+                    plan.goals.retirement.spouseAge = parseInt(row['גיל בן/בת זוג']) || null;
+                    plan.goals.retirement.monthlyPension = parseFloat(row['קצבה חודשית']) || null;
+                    plan.goals.retirement.isRealValue = row['ערך ריאלי'] === 'כן';
                 }
             }
             
@@ -1983,8 +2042,8 @@ function importExcel(event) {
                 const eqData = XLSX.utils.sheet_to_json(eqSheet);
                 if (eqData.length > 0) {
                     const row = eqData[0];
-                    appData.goals.equity.targetAmount = parseFloat(row['סכום יעד']) || null;
-                    appData.goals.equity.targetYear = parseInt(row['שנת יעד']) || null;
+                    plan.goals.equity.targetAmount = parseFloat(row['סכום יעד']) || null;
+                    plan.goals.equity.targetYear = parseInt(row['שנת יעד']) || null;
                 }
             }
             
@@ -1992,7 +2051,7 @@ function importExcel(event) {
             if (workbook.SheetNames.includes('יעדי חיים')) {
                 const lgSheet = workbook.Sheets['יעדי חיים'];
                 const lgData = XLSX.utils.sheet_to_json(lgSheet);
-                appData.goals.lifeGoals = lgData.map(row => ({
+                plan.goals.lifeGoals = lgData.map(row => ({
                     id: row['ID'] || Date.now() + Math.random(),
                     name: row['שם'] || '',
                     amount: parseFloat(row['סכום']) || 0,
@@ -2014,12 +2073,10 @@ function importExcel(event) {
             }
             
             saveData();
-            renderProfile();
-            renderGoals();
-            renderLifeGoals();
-            renderWithdrawals();
             renderInvestments();
+            renderWithdrawals();
             renderSummary();
+            render();
             
             alert('✅ כל הנתונים יובאו בהצלחה!\n- השקעות\n- פרופיל\n- יעדים\n- מפת דרכים');
         } catch (e) {
