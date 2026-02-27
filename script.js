@@ -5,6 +5,47 @@
 // ==========================================
 
 console.log('🚀 Financial Planner Pro v3.3.0 Loading...');
+
+// ==========================================
+// AGGRESSIVE CACHE CLEAR FOR v3.3.0
+// ==========================================
+const APP_VERSION = '3.3.0';
+const STORED_VERSION = localStorage.getItem('app_version');
+
+if (STORED_VERSION !== APP_VERSION) {
+    console.log('🔥 Version mismatch! Clearing all caches...');
+    
+    // Clear all caches
+    if ('caches' in window) {
+        caches.keys().then(names => {
+            names.forEach(name => {
+                console.log('Deleting cache:', name);
+                caches.delete(name);
+            });
+        });
+    }
+    
+    // Unregister all service workers
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(registration => {
+                console.log('Unregistering SW:', registration);
+                registration.unregister();
+            });
+        });
+    }
+    
+    // Update version
+    localStorage.setItem('app_version', APP_VERSION);
+    
+    // Force reload after 1 second
+    setTimeout(() => {
+        console.log('🔄 Reloading for fresh start...');
+        window.location.reload(true);
+    }, 1000);
+}
+
+console.log('✅ App version:', APP_VERSION);
 console.log('✅ Pension separate from capital');
 console.log('✅ iPhone plus button fixed');
 console.log('✅ Auto-fill return rate from dropdown');
