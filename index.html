@@ -10,7 +10,7 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json?v=3.3.0">
     
     <!-- Theme color for mobile browsers -->
     <meta name="theme-color" content="#58a6ff">
@@ -78,6 +78,10 @@
                 <button class="btn-header" onclick="generateReport()" title="דוח מסכם">
                     <span>📋</span>
                     <span>דוח</span>
+                </button>
+                <button class="btn-header" onclick="exportExcel()" title="ייצוא Excel">
+                    <span>📤</span>
+                    <span>ייצוא</span>
                 </button>
                 <button class="btn-header" onclick="document.getElementById('excelImport').click()" title="ייבוא Excel">
                     <span>📥</span>
@@ -1088,8 +1092,46 @@
     </script>
 
     <!-- Load JavaScript -->
-    <script src="script.js?v=3.3.0"></script>
+    <script src="script.js?v=40"></script>
     
     <!-- PWA Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            let refreshing = false;
+            
+            // Register service worker
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(registration => {
+                    console.log('✅ Service Worker registered');
+                    
+                    // Check for updates every minute
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000);
+                    
+                    // Handle updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New version available
+                                if (confirm('🔄 גרסה חדשה זמינה! לרענן את העמוד?')) {
+                                    newWorker.postMessage({ action: 'skipWaiting' });
+                                }
+                            }
+                        });
+                    });
+                })
+                .catch(err => console.error('❌ SW registration failed:', err));
+            
+            // Handle controller change (new SW activated)
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload();
+            });
+        }
+    </script>
 </body>
 </html>

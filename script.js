@@ -4,12 +4,14 @@
 // Version: 3.2.0 - Pension Separate + iPhone Fix + Auto-fill
 // ==========================================
 
-console.log('🚀 Financial Planner Pro v3.3.0 Loading...');
+console.log('🚀 VERSION 40.0 - HARD RESET');
+
+console.log('🚀 Financial Planner Pro v3.4.0 Loading...');
 
 // ==========================================
-// AGGRESSIVE CACHE CLEAR FOR v3.3.0
+// AGGRESSIVE CACHE CLEAR FOR v3.4.0
 // ==========================================
-const APP_VERSION = '3.3.0';
+const APP_VERSION = '3.4.0';
 const STORED_VERSION = localStorage.getItem('app_version');
 
 if (STORED_VERSION !== APP_VERSION) {
@@ -1802,6 +1804,101 @@ function exportToExcel() {
     }
 }
 
+function exportExcel() {
+    const plan = getCurrentPlan();
+    const profile = appData.profile;
+    const goals = appData.goals;
+    
+    const wb = XLSX.utils.book_new();
+    
+    // Sheet 1: Investments
+    const invData = plan.investments.map(inv => ({
+        'שם': inv.name,
+        'סוג': inv.type,
+        'בית השקעות': inv.house,
+        'סכום נוכחי': inv.amount,
+        'הפקדה חודשית': inv.monthly,
+        'תשואה %': inv.returnRate,
+        'מס %': inv.tax || 0,
+        'דמי ניהול הפקדה %': inv.feeDeposit || 0,
+        'דמי ניהול צבירה %': inv.feeAnnual || 0,
+        'כלול': inv.include ? 'כן' : 'לא',
+        'בן/בת זוג': inv.spouse || '',
+        'גיל': inv.age || '',
+        'מגדר': inv.gender || '',
+        'תתי-מסלולים': inv.subTracks ? JSON.stringify(inv.subTracks) : ''
+    }));
+    const ws1 = XLSX.utils.json_to_sheet(invData);
+    XLSX.utils.book_append_sheet(wb, ws1, 'מסלולי השקעה');
+    
+    // Sheet 2: Profile
+    const profileData = [
+        { 'שדה': 'שם משתמש', 'ערך': profile.user.name || '' },
+        { 'שדה': 'גיל משתמש', 'ערך': profile.user.age || '' },
+        { 'שדה': 'שם בן/בת זוג', 'ערך': profile.spouse.name || '' },
+        { 'שדה': 'גיל בן/בת זוג', 'ערך': profile.spouse.age || '' },
+        { 'שדה': 'מספר ילדים', 'ערך': profile.children.length }
+    ];
+    profile.children.forEach((child, i) => {
+        profileData.push({ 'שדה': `ילד ${i+1} - שם`, 'ערך': child.name });
+        profileData.push({ 'שדה': `ילד ${i+1} - גיל`, 'ערך': child.age });
+    });
+    const ws2 = XLSX.utils.json_to_sheet(profileData);
+    XLSX.utils.book_append_sheet(wb, ws2, 'פרופיל');
+    
+    // Sheet 3: Goals - Retirement
+    const retirementData = [{
+        'סוג יעד': 'פרישה',
+        'גיל משתמש': goals.retirement.userAge || '',
+        'גיל בן/בת זוג': goals.retirement.spouseAge || '',
+        'קצבה חודשית': goals.retirement.monthlyPension || '',
+        'ערך ריאלי': goals.retirement.isRealValue ? 'כן' : 'לא'
+    }];
+    const ws3 = XLSX.utils.json_to_sheet(retirementData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'יעד פרישה');
+    
+    // Sheet 4: Goals - Equity
+    const equityData = [{
+        'סוג יעד': 'הון עצמי',
+        'סכום יעד': goals.equity.targetAmount || '',
+        'שנת יעד': goals.equity.targetYear || ''
+    }];
+    const ws4 = XLSX.utils.json_to_sheet(equityData);
+    XLSX.utils.book_append_sheet(wb, ws4, 'יעד הון');
+    
+    // Sheet 5: Life Goals
+    if (goals.lifeGoals && goals.lifeGoals.length > 0) {
+        const lifeGoalsData = goals.lifeGoals.map(g => ({
+            'שם': g.name,
+            'סכום': g.amount,
+            'שנה': g.year,
+            'ID': g.id || ''
+        }));
+        const ws5 = XLSX.utils.json_to_sheet(lifeGoalsData);
+        XLSX.utils.book_append_sheet(wb, ws5, 'יעדי חיים');
+    }
+    
+    // Sheet 6: Roadmap (Withdrawals)
+    if (plan.withdrawals && plan.withdrawals.length > 0) {
+        const withdrawalsData = plan.withdrawals.map(w => ({
+            'שנה': w.year,
+            'סכום': w.amount,
+            'מטרה': w.goal || '',
+            'מקושר ליעד ID': w.goalId || '',
+            'פעיל': w.active === false ? 'לא' : 'כן'
+        }));
+        const ws6 = XLSX.utils.json_to_sheet(withdrawalsData);
+        XLSX.utils.book_append_sheet(wb, ws6, 'מפת דרכים');
+    }
+    
+    // Generate filename with date
+    const now = new Date();
+    const filename = `תוכנית_פיננסית_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}.xlsx`;
+    
+    XLSX.writeFile(wb, filename);
+    showSaveNotification('✅ הקובץ יוצא בהצלחה!');
+}
+
 function importExcel(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1815,8 +1912,8 @@ function importExcel(event) {
             const plan = getCurrentPlan();
             
             // Import investments
-            const invSheet = workbook.Sheets['מסלולי השקעה'];
-            if (invSheet) {
+            if (workbook.SheetNames.includes('מסלולי השקעה')) {
+                const invSheet = workbook.Sheets['מסלולי השקעה'];
                 const invData = XLSX.utils.sheet_to_json(invSheet);
                 plan.investments = invData.map(row => ({
                     name: row['שם'] || '',
@@ -1828,28 +1925,103 @@ function importExcel(event) {
                     tax: parseFloat(row['מס %']) || 0,
                     feeDeposit: parseFloat(row['דמי ניהול הפקדה %']) || 0,
                     feeAnnual: parseFloat(row['דמי ניהול צבירה %']) || 0,
-                    forDream: false,
-                    include: row['כלול'] ? row['כלול'] === 'כן' : true,
+                    include: row['כלול'] === 'כן',
+                    spouse: row['בן/בת זוג'] || '',
+                    age: parseInt(row['גיל']) || null,
+                    gender: row['מגדר'] || '',
                     subTracks: row['תתי-מסלולים'] ? JSON.parse(row['תתי-מסלולים']) : []
                 }));
             }
             
-            // Import dreams with sources
-            if (workbook.SheetNames.includes('חלומות')) {
-                const ws2 = workbook.Sheets['חלומות'];
-                const dreamData = XLSX.utils.sheet_to_json(ws2);
+            // Import profile
+            if (workbook.SheetNames.includes('פרופיל')) {
+                const profileSheet = workbook.Sheets['פרופיל'];
+                const profileData = XLSX.utils.sheet_to_json(profileSheet);
                 
-                plan.dreams = dreamData.map(row => ({
+                profileData.forEach(row => {
+                    const field = row['שדה'];
+                    const value = row['ערך'];
+                    
+                    if (field === 'שם משתמש') appData.profile.user.name = value;
+                    if (field === 'גיל משתמש') appData.profile.user.age = parseInt(value) || null;
+                    if (field === 'שם בן/בת זוג') appData.profile.spouse.name = value;
+                    if (field === 'גיל בן/בת זוג') appData.profile.spouse.age = parseInt(value) || null;
+                    
+                    if (field.startsWith('ילד ')) {
+                        const match = field.match(/ילד (\d+) - (שם|גיל)/);
+                        if (match) {
+                            const index = parseInt(match[1]) - 1;
+                            const prop = match[2];
+                            
+                            if (!appData.profile.children[index]) {
+                                appData.profile.children[index] = { name: '', age: null };
+                            }
+                            
+                            if (prop === 'שם') appData.profile.children[index].name = value;
+                            if (prop === 'גיל') appData.profile.children[index].age = parseInt(value) || null;
+                        }
+                    }
+                });
+            }
+            
+            // Import retirement goal
+            if (workbook.SheetNames.includes('יעד פרישה')) {
+                const retSheet = workbook.Sheets['יעד פרישה'];
+                const retData = XLSX.utils.sheet_to_json(retSheet);
+                if (retData.length > 0) {
+                    const row = retData[0];
+                    appData.goals.retirement.userAge = parseInt(row['גיל משתמש']) || null;
+                    appData.goals.retirement.spouseAge = parseInt(row['גיל בן/בת זוג']) || null;
+                    appData.goals.retirement.monthlyPension = parseFloat(row['קצבה חודשית']) || null;
+                    appData.goals.retirement.isRealValue = row['ערך ריאלי'] === 'כן';
+                }
+            }
+            
+            // Import equity goal
+            if (workbook.SheetNames.includes('יעד הון')) {
+                const eqSheet = workbook.Sheets['יעד הון'];
+                const eqData = XLSX.utils.sheet_to_json(eqSheet);
+                if (eqData.length > 0) {
+                    const row = eqData[0];
+                    appData.goals.equity.targetAmount = parseFloat(row['סכום יעד']) || null;
+                    appData.goals.equity.targetYear = parseInt(row['שנת יעד']) || null;
+                }
+            }
+            
+            // Import life goals
+            if (workbook.SheetNames.includes('יעדי חיים')) {
+                const lgSheet = workbook.Sheets['יעדי חיים'];
+                const lgData = XLSX.utils.sheet_to_json(lgSheet);
+                appData.goals.lifeGoals = lgData.map(row => ({
+                    id: row['ID'] || Date.now() + Math.random(),
                     name: row['שם'] || '',
-                    cost: parseFloat(row['עלות']) || 0,
-                    year: parseInt(row['שנת יעד']) || 10,
-                    sources: row['מקורות'] ? row['מקורות'].split(', ').filter(s => s) : []
+                    amount: parseFloat(row['סכום']) || 0,
+                    year: parseInt(row['שנה']) || new Date().getFullYear() + 10
+                }));
+            }
+            
+            // Import roadmap
+            if (workbook.SheetNames.includes('מפת דרכים')) {
+                const rmSheet = workbook.Sheets['מפת דרכים'];
+                const rmData = XLSX.utils.sheet_to_json(rmSheet);
+                plan.withdrawals = rmData.map(row => ({
+                    year: parseInt(row['שנה']) || new Date().getFullYear(),
+                    amount: parseFloat(row['סכום']) || 0,
+                    goal: row['מטרה'] || '',
+                    goalId: row['מקושר ליעד ID'] || null,
+                    active: row['פעיל'] !== 'לא'
                 }));
             }
             
             saveData();
-            render();
-            alert('✅ הנתונים יובאו בהצלחה!');
+            renderProfile();
+            renderGoals();
+            renderLifeGoals();
+            renderWithdrawals();
+            renderInvestments();
+            renderSummary();
+            
+            alert('✅ כל הנתונים יובאו בהצלחה!\n- השקעות\n- פרופיל\n- יעדים\n- מפת דרכים');
         } catch (e) {
             console.error('Import error:', e);
             alert('❌ שגיאה בייבוא הקובץ: ' + e.message);
@@ -3179,6 +3351,11 @@ function generateReport() {
     
     if (!plan || !plan.investments) {
         alert('שגיאה: לא נמצאה תוכנית או השקעות');
+        return;
+    }
+    
+    if (plan.investments.length === 0) {
+        alert('⚠️ אין מסלולי השקעה להציג בדוח.\nאנא הוסף השקעות תחילה.');
         return;
     }
     

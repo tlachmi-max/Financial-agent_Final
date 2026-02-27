@@ -1,15 +1,15 @@
 // Service Worker for Financial Planner PWA
-const CACHE_NAME = 'financial-planner-v3.3.0';
+const CACHE_NAME = 'financial-planner-v40';
 const ASSETS_TO_CACHE = [
-    '/index.html',
-    '/style.css',
-    '/script.js',
-    '/manifest.json'
+    './index.html',
+    './style.css',
+    './script.js',
+    './manifest.json'
 ];
 
 // Install event - cache assets
 self.addEventListener('install', (event) => {
-    console.log('Service Worker: Installing...');
+    console.log('Service Worker: Installing v40...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -20,9 +20,16 @@ self.addEventListener('install', (event) => {
     );
 });
 
+// Listen for skipWaiting message
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.action === 'skipWaiting') {
+        self.skipWaiting();
+    }
+});
+
 // Activate event - clean old caches
 self.addEventListener('activate', (event) => {
-    console.log('Service Worker: Activating...');
+    console.log('Service Worker: Activating v40...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
