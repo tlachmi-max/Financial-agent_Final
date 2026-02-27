@@ -1,0 +1,13 @@
+{
+  "name": "מתכנן פיננסי",
+  "short_name": "פיננסים",
+  "description": "מערכת לתכנון פיננסי אישי",
+  "start_url": "./index.html?v=3.4.0",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#58a6ff",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": []
+}
