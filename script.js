@@ -216,11 +216,10 @@ function init() {
     console.log('✅ Ready!');
 }
 
-function createDefaultPlan(name) {
-    return {
+function createDefaultPlan() {
+    const plan = {
         id: Date.now().toString(),
-        name: name || 'תוכנית חדשה',
-        createdDate: new Date().toISOString(),
+        name: 'תוכנית ראשית',
         investments: [],
         withdrawals: [],
         profile: {
@@ -230,19 +229,26 @@ function createDefaultPlan(name) {
             children: []
         },
         goals: {
-            retirement: { userAge: null, spouseAge: null, monthlyPension: null, isRealValue: true },
-            equity: { targetAmount: null, targetYear: null, isRealValue: true },
+            retirement: {
+                userAge: null,
+                spouseAge: null,
+                monthlyPension: null,
+                isRealValue: true
+            },
+            equity: {
+                targetAmount: null,
+                targetYear: null,
+                isRealValue: true
+            },
             lifeGoals: []
-        }
-    };
-}
-
+        },
         createdAt: new Date().toISOString()
     };
     appData.plans.push(plan);
     appData.currentPlanId = plan.id;
     saveData();
 }
+
 
 function getCurrentPlan() {
     const plan = appData.plans.find(p => p.id === appData.currentPlanId) || appData.plans[0];
