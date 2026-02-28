@@ -644,7 +644,6 @@ function switchPanel(panelId) {
     const navLinks = document.getElementById('navLinks');
     if (navLinks) navLinks.classList.remove('active');
 }
-
 // ==========================================
 // SUB-TRACKS
 // ==========================================
