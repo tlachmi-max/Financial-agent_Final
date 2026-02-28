@@ -611,21 +611,33 @@ function updateTaxRate() {
 // UI NAVIGATION
 // ==========================================
 
+let lastTabSwitch = 0;
+
 function switchPanel(panelId) {
-    console.log('Navigating to:', panelId);
+    // חוסם לולאות: אם עבר פחות מ-100 מילישניות מהלחיצה האחרונה, תתעלם
+    const now = Date.now();
+    if (now - lastTabSwitch < 100) return;
+    lastTabSwitch = now;
 
-    // 1. הסרת מחלקת active מכל הכפתורים והפאנלים
+    console.log('🚀 Switching to:', panelId);
+
+    // הסרת active
     document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
 
-    // 2. הוספת active לכפתור ולפאנל הנבחר
-    const activeBtn = document.querySelector(`.nav-item[onclick*="${panelId}"]`);
-    if (activeBtn) activeBtn.classList.add('active');
+    // הפעלת הפאנל
+    const target = document.getElementById(panelId);
+    if (target) target.classList.add('active');
 
-    const activePanel = document.getElementById(panelId);
-    if (activePanel) {
-        activePanel.classList.add('active');
-    }
+    // סימון כפתור
+    const btn = document.querySelector(`.nav-item[onclick*="${panelId}"]`);
+    if (btn) btn.classList.add('active');
+
+    // הרצת פונקציות טעינה
+    if (panelId === 'profile') renderChildren();
+    if (panelId === 'goals') renderLifeGoals();
+    if (panelId === 'summary') updateSummary();
+}
 
     // 3. טעינת נתונים ספציפית לכל טאב (חשוב לשמירת יעדים ופרופיל)
     if (panelId === 'profile') renderChildren();
