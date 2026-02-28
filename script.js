@@ -1882,9 +1882,9 @@ function exportToExcel() {
 function exportExcel() {
     const plan = getCurrentPlan();
 const profile = plan.profile;
-const goals = plan.goals;
+ goals = plan.goals;
 ``
-    const goals = getCurrentPlan().goals;
+
     
     const wb = XLSX.utils.book_new();
     
@@ -3696,7 +3696,7 @@ function saveProfile() {
 // Goals initialized in appData declaration above
 
 function loadGoals() {
-    const goals = getCurrentPlan().goals;
+     goals = getCurrentPlan().goals;
     const profile = getCurrentPlan().profile;
     
     // Retirement
@@ -3824,7 +3824,7 @@ function editLifeGoal(index) {
 }
 
 function saveGoals() {
-    const goals = getCurrentPlan().goals;
+     goals = getCurrentPlan().goals;
     
     // Retirement
     goals.retirement.userAge = parseInt(document.getElementById('goalRetirementAgeUser').value) || null;
@@ -3853,7 +3853,7 @@ function saveGoals() {
 
 function analyzeGoals() {
     const profile = getCurrentPlan().profile;
-    const goals = getCurrentPlan().goals;
+    goals = getCurrentPlan().goals;
     const plan = getCurrentPlan();
     
     if (!profile.user.age || !goals) {
@@ -4157,7 +4157,7 @@ function syncLifeGoalsToRoadmap() {
         plan.withdrawals = [];
     }
     
-    const goals = getCurrentPlan().goals.lifeGoals;
+    goals = getCurrentPlan().goals.lifeGoals;
     
     // Mark existing goal-based withdrawals
     const goalWithdrawalIds = new Set();
@@ -4453,7 +4453,7 @@ function renderRecommendations() {
 function generateAnalysisReport() {
     const plan = getCurrentPlan();
     const profile = getCurrentPlan().profile;
-    const goals = getCurrentPlan().goals;
+   goals = getCurrentPlan().goals;
     
     if (!plan) {
         alert('שגיאה: לא נמצאה תוכנית פעילה');
@@ -4891,7 +4891,7 @@ function generateAnalysisHTML(yearlyData, goals, profile) {
 
 function analyzeRisk() {
     const plan = getCurrentPlan();
-    const goals = getCurrentPlan().goals;
+     goals = getCurrentPlan().goals;
     const currentYear = new Date().getFullYear();
     
     // Calculate current equity allocation
