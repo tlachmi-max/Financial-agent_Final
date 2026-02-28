@@ -637,7 +637,6 @@ function switchPanel(panelId) {
     if (panelId === 'profile') renderChildren();
     if (panelId === 'goals') renderLifeGoals();
     if (panelId === 'summary') updateSummary();
-}
 
     // 3. טעינת נתונים ספציפית לכל טאב (חשוב לשמירת יעדים ופרופיל)
     if (panelId === 'profile') renderChildren();
@@ -645,7 +644,7 @@ function switchPanel(panelId) {
     if (panelId === 'summary') updateSummary();
     if (panelId === 'pension') {
         if (typeof renderPensionTab === 'function') renderPensionTab();
-    }
+
     
     // סגירת תפריט מובייל
     const navLinks = document.getElementById('navLinks');
