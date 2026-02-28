@@ -216,32 +216,26 @@ function init() {
     console.log('✅ Ready!');
 }
 
-function createDefaultPlan() {
-    const plan = {
+function createDefaultPlan(name) {
+    return {
         id: Date.now().toString(),
-        name: 'תוכנית ראשית',
+        name: name || 'תוכנית חדשה',
+        createdDate: new Date().toISOString(),
         investments: [],
-withdrawals: [],
-profile: {
-    maritalStatus: 'married',
-    user: { name: '', age: null, gender: 'male' },
-    spouse: { name: '', age: null, gender: 'female' },
-    children: []
-},
-goals: {
-    retirement: {
-        userAge: null,
-        spouseAge: null,
-        monthlyPension: null,
-        isRealValue: true
-    },
-    equity: {
-        targetAmount: null,
-        targetYear: null,
-        isRealValue: true
-    },
-    lifeGoals: []
-},
+        withdrawals: [],
+        profile: {
+            maritalStatus: 'married',
+            user: { name: '', age: null, gender: 'male' },
+            spouse: { name: '', age: null, gender: 'female' },
+            children: []
+        },
+        goals: {
+            retirement: { userAge: null, spouseAge: null, monthlyPension: null, isRealValue: true },
+            equity: { targetAmount: null, targetYear: null, isRealValue: true },
+            lifeGoals: []
+        }
+    };
+}
 
         createdAt: new Date().toISOString()
     };
@@ -252,40 +246,11 @@ goals: {
 
 function getCurrentPlan() {
     const plan = appData.plans.find(p => p.id === appData.currentPlanId) || appData.plans[0];
-    
-    // Ensure plan has profile and goals
-    if (!plan.profile) {
-        plan.profile = {
-            maritalStatus: 'married',
-            user: { name: '', age: null, gender: 'male' },
-            spouse: { name: '', age: null, gender: 'female' },
-            children: []
-        };
-    }
-    if (!plan.goals) {
-        plan.goals = {
-            retirement: {
-                userAge: null,
-                spouseAge: null,
-                monthlyPension: null,
-                isRealValue: true
-            },
-            equity: {
-                targetAmount: null,
-                targetYear: null,
-                isRealValue: true
-            },
-            lifeGoals: []
-        };
-    }
-    if (!plan.withdrawals) {
-        plan.withdrawals = [];
-    }
-    
+    // וידוא שהמבנה החדש קיים גם בתוכניות ישנות
+    if (!plan.profile) plan.profile = createDefaultPlan().profile;
+    if (!plan.goals) plan.goals = createDefaultPlan().goals;
+    if (!plan.withdrawals) plan.withdrawals = plan.dreams || [];
     return plan;
-}
-
-
 }
 
 // ==========================================
@@ -308,8 +273,8 @@ function loadData() {
             const loadedData = JSON.parse(saved);
             
             // Preserve profile if it doesn't exist in loaded data
-            if (!loadedData.profile && appData.profile) {
-                loadedData.profile = appData.profile;
+            if (!loadedData.profile && getCurrentPlan().profile) {
+                loadedData.profile = getCurrentPlan().profile;
             }
             
             // Ensure profile structure exists
@@ -328,8 +293,8 @@ function loadData() {
             }
             
             // Preserve goals if it doesn't exist in loaded data
-            if (!loadedData.goals && appData.goals) {
-                loadedData.goals = appData.goals;
+            if (!loadedData.goals && getCurrentPlan().goals) {
+                loadedData.goals = getCurrentPlan().goals;
             }
             
             // Ensure goals structure exists
@@ -1886,7 +1851,7 @@ function exportExcel() {
 const profile = plan.profile;
 const goals = plan.goals;
 ``
-    const goals = appData.goals;
+    const goals = getCurrentPlan().goals;
     
     const wb = XLSX.utils.book_new();
     
@@ -2021,10 +1986,10 @@ function importExcel(event) {
                     const field = row['שדה'];
                     const value = row['ערך'];
                     
-                    if (field === 'שם משתמש') appData.profile.user.name = value;
-                    if (field === 'גיל משתמש') appData.profile.user.age = parseInt(value) || null;
-                    if (field === 'שם בן/בת זוג') appData.profile.spouse.name = value;
-                    if (field === 'גיל בן/בת זוג') appData.profile.spouse.age = parseInt(value) || null;
+                    if (field === 'שם משתמש') getCurrentPlan().profile.user.name = value;
+                    if (field === 'גיל משתמש') getCurrentPlan().profile.user.age = parseInt(value) || null;
+                    if (field === 'שם בן/בת זוג') getCurrentPlan().profile.spouse.name = value;
+                    if (field === 'גיל בן/בת זוג') getCurrentPlan().profile.spouse.age = parseInt(value) || null;
                     
                     if (field.startsWith('ילד ')) {
                         const match = field.match(/ילד (\d+) - (שם|גיל)/);
@@ -2032,12 +1997,12 @@ function importExcel(event) {
                             const index = parseInt(match[1]) - 1;
                             const prop = match[2];
                             
-                            if (!appData.profile.children[index]) {
-                                appData.profile.children[index] = { name: '', age: null };
+                            if (!getCurrentPlan().profile.children[index]) {
+                               getCurrentPlan().profile.children[index] = { name: '', age: null };
                             }
                             
-                            if (prop === 'שם') appData.profile.children[index].name = value;
-                            if (prop === 'גיל') appData.profile.children[index].age = parseInt(value) || null;
+                            if (prop === 'שם') getCurrentPlan().profile.children[index].name = value;
+                            if (prop === 'גיל') getCurrentPlan().profile.children[index].age = parseInt(value) || null;
                         }
                     }
                 });
@@ -2049,10 +2014,10 @@ function importExcel(event) {
                 const retData = XLSX.utils.sheet_to_json(retSheet);
                 if (retData.length > 0) {
                     const row = retData[0];
-                    appData.goals.retirement.userAge = parseInt(row['גיל משתמש']) || null;
-                    appData.goals.retirement.spouseAge = parseInt(row['גיל בן/בת זוג']) || null;
-                    appData.goals.retirement.monthlyPension = parseFloat(row['קצבה חודשית']) || null;
-                    appData.goals.retirement.isRealValue = row['ערך ריאלי'] === 'כן';
+                    getCurrentPlan().goals.retirement.userAge = parseInt(row['גיל משתמש']) || null;
+                    getCurrentPlan().goals.retirement.spouseAge = parseInt(row['גיל בן/בת זוג']) || null;
+                    getCurrentPlan().goals.retirement.monthlyPension = parseFloat(row['קצבה חודשית']) || null;
+                    getCurrentPlan().goals.retirement.isRealValue = row['ערך ריאלי'] === 'כן';
                 }
             }
             
@@ -2062,8 +2027,8 @@ function importExcel(event) {
                 const eqData = XLSX.utils.sheet_to_json(eqSheet);
                 if (eqData.length > 0) {
                     const row = eqData[0];
-                    appData.goals.equity.targetAmount = parseFloat(row['סכום יעד']) || null;
-                    appData.goals.equity.targetYear = parseInt(row['שנת יעד']) || null;
+                    getCurrentPlan().goals.equity.targetAmount = parseFloat(row['סכום יעד']) || null;
+                    getCurrentPlan().goals.equity.targetYear = parseInt(row['שנת יעד']) || null;
                 }
             }
             
@@ -2071,7 +2036,7 @@ function importExcel(event) {
             if (workbook.SheetNames.includes('יעדי חיים')) {
                 const lgSheet = workbook.Sheets['יעדי חיים'];
                 const lgData = XLSX.utils.sheet_to_json(lgSheet);
-                appData.goals.lifeGoals = lgData.map(row => ({
+                getCurrentPlan().goals.lifeGoals = lgData.map(row => ({
                     id: row['ID'] || Date.now() + Math.random(),
                     name: row['שם'] || '',
                     amount: parseFloat(row['סכום']) || 0,
@@ -3552,7 +3517,7 @@ function generateReport() {
 }
 function updateMaritalStatus() {
     const status = document.querySelector('input[name="maritalStatus"]:checked').value;
-    appData.profile.maritalStatus = status;
+    getCurrentPlan().profile.maritalStatus = status;
     
     // Show/hide spouse section
     document.getElementById('spouseSection').style.display = 
@@ -3580,7 +3545,7 @@ function addChild() {
         birthYear: currentYear - age
     };
     
-    appData.profile.children.push(child);
+   getCurrentPlan().profile.children.push(child);
     saveData();
     renderChildren();
 }
@@ -3588,7 +3553,7 @@ function addChild() {
 function removeChild(index) {
     if (!confirm('האם למחוק את הילד/ה?')) return;
     
-    appData.profile.children.splice(index, 1);
+   getCurrentPlan().profile.children.splice(index, 1);
     saveData();
     renderChildren();
 }
@@ -3597,7 +3562,7 @@ function renderChildren() {
     const container = document.getElementById('childrenList');
     if (!container) return; // Container not loaded yet
     
-    const children = appData.profile.children;
+    const children =getCurrentPlan().profile.children;
     
     if (children.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="empty-text">לא הוגדרו ילדים</div></div>';
@@ -3624,7 +3589,7 @@ function renderChildren() {
 }
 
 function loadProfile() {
-    const profile = appData.profile;
+    const profile = getCurrentPlan().profile;
     
     // Marital status
     const statusRadio = document.querySelector(`input[name="maritalStatus"][value="${profile.maritalStatus}"]`);
@@ -3648,7 +3613,7 @@ function loadProfile() {
 }
 
 function saveProfile() {
-    const profile = appData.profile;
+    const profile = getCurrentPlan().profile;
     
     // User
     profile.user.name = document.getElementById('userName').value.trim();
@@ -3705,8 +3670,8 @@ switchPanel = function(panelName) {
 // Goals initialized in appData declaration above
 
 function loadGoals() {
-    const goals = appData.goals;
-    const profile = appData.profile;
+    const goals = getCurrentPlan().goals;
+    const profile = getCurrentPlan().profile;
     
     // Retirement
     document.getElementById('goalRetirementAgeUser').value = goals.retirement.userAge || '';
@@ -3757,7 +3722,7 @@ function addLifeGoal() {
         priority: 'medium'
     };
     
-    appData.goals.lifeGoals.push(goal);
+    getCurrentPlan().goals.lifeGoals.push(goal);
     saveData();
     syncLifeGoalsToRoadmap();
     showSaveNotification('✅ היעד נוסף ונשמר במפת דרכים!');
@@ -3766,7 +3731,7 @@ function addLifeGoal() {
 function removeLifeGoal(index) {
     if (!confirm('האם למחוק יעד זה?')) return;
     
-    appData.goals.lifeGoals.splice(index, 1);
+    getCurrentPlan().goals.lifeGoals.splice(index, 1);
     saveData();
     syncLifeGoalsToRoadmap();
     showSaveNotification('✅ היעד נמחק מהיעדים ומהמפת דרכים');
@@ -3776,7 +3741,7 @@ function renderLifeGoals() {
     const container = document.getElementById('lifeGoalsList');
     if (!container) return;
     
-    const goals = appData.goals.lifeGoals;
+    const goals = getCurrentPlan().goals.lifeGoals;
     
     if (goals.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="empty-text">לא הוגדרו יעדי חיים</div></div>';
@@ -3811,7 +3776,7 @@ function renderLifeGoals() {
 }
 
 function editLifeGoal(index) {
-    const goal = appData.goals.lifeGoals[index];
+    const goal = getCurrentPlan().goals.lifeGoals[index];
     
     const name = prompt('שם היעד:', goal.name);
     if (!name || name.trim() === '') return;
@@ -3842,7 +3807,7 @@ function editLifeGoal(index) {
 }
 
 function saveGoals() {
-    const goals = appData.goals;
+    const goals = getCurrentPlan().goals;
     
     // Retirement
     goals.retirement.userAge = parseInt(document.getElementById('goalRetirementAgeUser').value) || null;
@@ -3885,8 +3850,8 @@ switchPanel = function(panelName) {
 // ==========================================
 
 function analyzeGoals() {
-    const profile = appData.profile;
-    const goals = appData.goals;
+    const profile = getCurrentPlan().profile;
+    const goals = getCurrentPlan().goals;
     const plan = getCurrentPlan();
     
     if (!profile.user.age || !goals) {
@@ -4190,7 +4155,7 @@ function syncLifeGoalsToRoadmap() {
         plan.withdrawals = [];
     }
     
-    const goals = appData.goals.lifeGoals;
+    const goals = getCurrentPlan().goals.lifeGoals;
     
     // Mark existing goal-based withdrawals
     const goalWithdrawalIds = new Set();
@@ -4244,7 +4209,7 @@ function generateRecommendations(analysis) {
     if (!analysis) return [];
     
     const recommendations = [];
-    const profile = appData.profile;
+    const profile = getCurrentPlan().profile;
     const plan = getCurrentPlan();
     
     // 1. Pension recommendations
@@ -4485,8 +4450,8 @@ function renderRecommendations() {
 
 function generateAnalysisReport() {
     const plan = getCurrentPlan();
-    const profile = appData.profile;
-    const goals = appData.goals;
+    const profile = getCurrentPlan().profile;
+    const goals = getCurrentPlan().goals;
     
     if (!plan) {
         alert('שגיאה: לא נמצאה תוכנית פעילה');
@@ -4924,7 +4889,7 @@ function generateAnalysisHTML(yearlyData, goals, profile) {
 
 function analyzeRisk() {
     const plan = getCurrentPlan();
-    const goals = appData.goals;
+    const goals = getCurrentPlan().goals;
     const currentYear = new Date().getFullYear();
     
     // Calculate current equity allocation
