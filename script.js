@@ -3751,16 +3751,7 @@ function removeLifeGoal(index) {
     showSaveNotification('✅ היעד נמחק מהיעדים ומהמפת דרכים');
 }
 
-function renderLifeGoals() {
-    const container = document.getElementById('lifeGoalsList');
-    if (!container) return;
-    
-    const goals = getCurrentPlan().goals.lifeGoals;
-    
-    if (goals.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-text">לא הוגדרו יעדי חיים</div></div>';
-        return;
-    }
+
     
     let html = '<div style="display: grid; gap: 12px;">';
     goals.forEach((goal, index) => {
