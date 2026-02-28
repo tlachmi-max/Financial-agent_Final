@@ -614,39 +614,33 @@ function updateTaxRate() {
 let lastTabSwitch = 0;
 
 function switchPanel(panelId) {
-    // חוסם לולאות: אם עבר פחות מ-100 מילישניות מהלחיצה האחרונה, תתעלם
-    const now = Date.now();
-    if (now - lastTabSwitch < 100) return;
-    lastTabSwitch = now;
-
-    console.log('🚀 Switching to:', panelId);
-
-    // הסרת active
-    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+    console.log('--- Switching to:', panelId);
+    
+    // 1. הסרת מחלקת active מכל הכפתורים והפאנלים
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
 
-    // הפעלת הפאנל
-    const target = document.getElementById(panelId);
-    if (target) target.classList.add('active');
+    // 2. הפעלת הפאנל הנבחר
+    const targetPanel = document.getElementById(panelId);
+    if (targetPanel) {
+        targetPanel.classList.add('active');
+    }
 
-    // סימון כפתור
-    const btn = document.querySelector(`.nav-item[onclick*="${panelId}"]`);
-    if (btn) btn.classList.add('active');
+    // 3. סימון הכפתור הנבחר כפעיל
+    const targetBtn = document.querySelector(`.nav-item[onclick*="${panelId}"]`);
+    if (targetBtn) {
+        targetBtn.classList.add('active');
+    }
 
-    // הרצת פונקציות טעינה
-    if (panelId === 'profile') renderChildren();
-    if (panelId === 'goals') renderLifeGoals();
-    if (panelId === 'summary') updateSummary();
-
-    // 3. טעינת נתונים ספציפית לכל טאב (חשוב לשמירת יעדים ופרופיל)
+    // 4. הרצת עדכונים ספציפיים לכל טאב
     if (panelId === 'profile') renderChildren();
     if (panelId === 'goals') renderLifeGoals();
     if (panelId === 'summary') updateSummary();
     if (panelId === 'pension') {
         if (typeof renderPensionTab === 'function') renderPensionTab();
+    }
 
-    
-    // סגירת תפריט מובייל
+    // 5. סגירת תפריט מובייל אם פתוח
     const navLinks = document.getElementById('navLinks');
     if (navLinks) navLinks.classList.remove('active');
 }
