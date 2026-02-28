@@ -3839,24 +3839,9 @@ function saveGoals() {
     
     // Visual feedback
     showSaveNotification('✅ היעדים נשמרו ומסונכרנו עם מפת דרכים!');
-}
-
-// Update switchPanel to load goals
-const originalSwitchPanel2 = switchPanel;
-switchPanel = function(panelName) {
-    originalSwitchPanel2(panelName);
-    if (panelName === 'goals') {
-        loadGoals();
-    }
-    if (panelName === 'summary') {
-        // Render goal progress when switching to summary
-        setTimeout(() => {
-            renderGoalProgress();
-            renderRecommendations();
-            renderRiskAnalysis();
-        }, 100);
-    }
 };
+
+
 
 
 // ==========================================
