@@ -3573,10 +3573,32 @@ function addChild() {
     renderChildren();
 }
 
-function removeChild(index) {
+function deleteChild(index) {
     if (!confirm('האם למחוק את הילד/ה?')) return;
     
-   getCurrentPlan().profile.children.splice(index, 1);
+    getCurrentPlan().profile.children.splice(index, 1);
+    saveData();
+    renderChildren();
+}
+
+function editChild(index) {
+    const child = getCurrentPlan().profile.children[index];
+    
+    const name = prompt('שם הילד/ה:', child.name);
+    if (!name || name.trim() === '') return;
+    
+    const ageStr = prompt('גיל הילד/ה:', child.age);
+    const age = parseInt(ageStr);
+    if (isNaN(age) || age < 0 || age > 30) {
+        alert('גיל לא תקין');
+        return;
+    }
+    
+    const currentYear = new Date().getFullYear();
+    child.name = name.trim();
+    child.age = age;
+    child.birthYear = currentYear - age;
+    
     saveData();
     renderChildren();
 }
@@ -3585,7 +3607,7 @@ function renderChildren() {
     const container = document.getElementById('childrenList');
     if (!container) return; // Container not loaded yet
     
-    const children =getCurrentPlan().profile.children;
+    const children = getCurrentPlan().profile.children;
     
     if (children.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="empty-text">לא הוגדרו ילדים</div></div>';
@@ -3600,9 +3622,14 @@ function renderChildren() {
                     <div style="font-weight: bold; font-size: 1.1em;">${child.name}</div>
                     <div style="font-size: 0.9em; color: #666;">גיל ${child.age} (נולד ב-${child.birthYear})</div>
                 </div>
-                <button class="btn btn-sm btn-danger" onclick="removeChild(${index})">
-                    🗑️ מחק
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-sm btn-primary" onclick="editChild(${index})">
+                        ✏️ ערוך
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteChild(${index})">
+                        🗑️ מחק
+                    </button>
+                </div>
             </div>
         `;
     });
@@ -3741,6 +3768,7 @@ function addLifeGoal() {
     getCurrentPlan().goals.lifeGoals.push(goal);
     saveData();
     syncLifeGoalsToRoadmap();
+    renderLifeGoals();  // ← הוספתי!
     showSaveNotification('✅ היעד נוסף ונשמר במפת דרכים!');
 }
 
@@ -3750,6 +3778,7 @@ function removeLifeGoal(index) {
     getCurrentPlan().goals.lifeGoals.splice(index, 1);
     saveData();
     syncLifeGoalsToRoadmap();
+    renderLifeGoals();  // ← הוספתי!
     showSaveNotification('✅ היעד נמחק מהיעדים ומהמפת דרכים');
 }
 
@@ -3819,6 +3848,7 @@ function editLifeGoal(index) {
     
     saveData();
     syncLifeGoalsToRoadmap();
+    renderLifeGoals();  // ← הוספתי!
     showSaveNotification('✅ היעד עודכן בהצלחה!');
 }
 
