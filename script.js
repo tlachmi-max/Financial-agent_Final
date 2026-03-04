@@ -1019,6 +1019,11 @@ function renderInvestments() {
             </div>
         `;
     }).join('');
+    
+    // Update pension tab if it exists
+    if (typeof renderPensionTab === 'function') {
+        renderPensionTab();
+    }
 }
 
 // ==========================================
@@ -2071,10 +2076,11 @@ function importExcel(event) {
             }
             
             saveData();
-            syncLifeGoalsToRoadmap();  // ← הוספתי! מחשב מחדש את המפה מהיעדים
+            syncLifeGoalsToRoadmap();
             renderWithdrawals();
             renderInvestments();
             renderSummary();
+            if (typeof renderPensionTab === 'function') renderPensionTab();  // ← הוספתי!
             
             alert('✅ כל הנתונים יובאו בהצלחה!\n- השקעות\n- פרופיל\n- יעדים\n- מפת דרכים');
         } catch (e) {
