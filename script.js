@@ -215,7 +215,6 @@ function init() {
     render();
     console.log('✅ Ready!');
 }
-
 function createDefaultPlan() {
     const plan = {
         id: Date.now().toString(),
@@ -247,6 +246,7 @@ function createDefaultPlan() {
     appData.plans.push(plan);
     appData.currentPlanId = plan.id;
     saveData();
+
 }
 
 
