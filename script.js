@@ -1875,7 +1875,7 @@ function exportExcel() {
     const plan = getCurrentPlan();
 const profile = plan.profile;
  goals = plan.goals;
-``
+
 
     
     const wb = XLSX.utils.book_new();
