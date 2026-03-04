@@ -525,6 +525,14 @@ function setupEventListeners() {
         document.getElementById('genderSection').style.display = this.value === 'פנסיה' ? 'block' : 'none';
     });
     
+    // Charts timeframe selector
+    const timeframeSelect = document.getElementById('chartsTimeframe');
+    if (timeframeSelect) {
+        timeframeSelect.addEventListener('change', function() {
+            renderCharts();
+        });
+    }
+    
     // Show/hide sub-tracks based on whether we're editing an investment
     document.getElementById('invAmount').addEventListener('input', function() {
         const section = document.getElementById('subTracksSection');
@@ -636,6 +644,7 @@ function switchPanel(panelId) {
     if (panelId === 'profile') renderChildren();
     if (panelId === 'goals') renderLifeGoals();
     if (panelId === 'summary') renderSummary();
+    if (panelId === 'charts') renderCharts();  // ← הוספתי!
     if (panelId === 'pension') {
         if (typeof renderPensionTab === 'function') renderPensionTab();
     }
@@ -1023,6 +1032,12 @@ function renderInvestments() {
     // Update pension tab if it exists
     if (typeof renderPensionTab === 'function') {
         renderPensionTab();
+    }
+    
+    // Update charts if charts panel is active
+    const chartsPanel = document.getElementById('charts');
+    if (chartsPanel && chartsPanel.classList.contains('active')) {
+        renderCharts();
     }
 }
 
