@@ -1,21 +1,21 @@
 // ==========================================
-// Financial Planner Pro v3.2 - ALL FIXES
-// Last Updated: 2025-02-13
-// Version: 3.2.0 - Pension Separate + iPhone Fix + Auto-fill
+// Financial Planner Pro v3.6 - Impact Simulator
+// Last Updated: 2026-03-05
+// Version: 3.6.0 - Impact simulator + yearly intervals
 // ==========================================
 
-console.log('🚀 VERSION 40.0 - HARD RESET');
+console.log('🚀 VERSION 60.0 - IMPACT SIMULATOR');
 
-console.log('🚀 Financial Planner Pro v3.4.0 Loading...');
+console.log('🚀 Financial Planner Pro v3.6.0 Loading...');
 
 // ==========================================
-// AGGRESSIVE CACHE CLEAR FOR v3.4.0
+// AGGRESSIVE CACHE CLEAR FOR v3.6.0
 // ==========================================
-const APP_VERSION = '3.4.0';
+const APP_VERSION = '3.6.0';
 const STORED_VERSION = localStorage.getItem('app_version');
 
 if (STORED_VERSION !== APP_VERSION) {
-    console.log('🔥 Version mismatch! Clearing all caches...');
+    console.log('🔥 Version mismatch! Upgrading to v3.6.0 - Clearing all caches...');
     
     // Clear all caches
     if ('caches' in window) {
@@ -48,9 +48,9 @@ if (STORED_VERSION !== APP_VERSION) {
 }
 
 console.log('✅ App version:', APP_VERSION);
-console.log('✅ Pension separate from capital');
-console.log('✅ iPhone plus button fixed');
-console.log('✅ Auto-fill return rate from dropdown');
+console.log('✅ Impact simulator added');
+console.log('✅ Yearly intervals for projections');
+console.log('✅ All bugs fixed');
 
 // Constants
 const INFLATION_RATE = 2;
@@ -640,11 +640,14 @@ function switchPanel(panelId) {
         targetBtn.classList.add('active');
     }
 
-   // 4. הרצת עדכונים ספציפיים לכל טאב
+    // 4. הרצת עדכונים ספציפיים לכל טאב
     if (panelId === 'profile') renderChildren();
     if (panelId === 'goals') renderLifeGoals();
     if (panelId === 'summary') renderSummary();
-    if (panelId === 'charts') renderCharts();  // ← הוספתי!
+    if (panelId === 'charts') {
+        // setTimeout נדרש ל-iPhone כדי שה-canvas יהיה מוכן
+        setTimeout(() => renderCharts(), 100);
+    }
     if (panelId === 'pension') {
         if (typeof renderPensionTab === 'function') renderPensionTab();
     }
@@ -1152,11 +1155,12 @@ function calculateDreamGap(dream) {
 function renderProjections() {
     const plan = getCurrentPlan();
     const years = parseInt(document.getElementById('projYears').value) || 20;
+    const interval = parseInt(document.getElementById('projInterval')?.value) || 5;
     const currentYear = new Date().getFullYear();
     const tbody = document.getElementById('projectionsBody');
     
     let rows = '';
-    for (let y = 0; y <= years; y += 5) {
+    for (let y = 0; y <= years; y += interval) {
         const year = currentYear + y;
         
         // Use projection with withdrawals
@@ -1403,6 +1407,132 @@ function renderSummary() {
 }
 
 // ==========================================
+// IMPACT SIMULATOR
+// ==========================================
+
+function simulateImpact() {
+    const plan = getCurrentPlan();
+    
+    // Get current averages
+    let totalCurrent = 0;
+    let totalWeightedReturn = 0;
+    let totalWeightedFeeAnnual = 0;
+    let totalWeightedFeeDeposit = 0;
+    
+    plan.investments.forEach(inv => {
+        if (!inv.include) return;
+        const amount = inv.amount || 0;
+        totalCurrent += amount;
+        totalWeightedReturn += amount * (inv.returnRate || 0);
+        totalWeightedFeeAnnual += amount * (inv.feeAnnual || 0);
+        totalWeightedFeeDeposit += amount * (inv.feeDeposit || 0);
+    });
+    
+    if (totalCurrent === 0) {
+        alert('אין מסלולי השקעה לסימולציה');
+        return;
+    }
+    
+    const currentAvgReturn = totalWeightedReturn / totalCurrent;
+    const currentAvgFeeAnnual = totalWeightedFeeAnnual / totalCurrent;
+    const currentAvgFeeDeposit = totalWeightedFeeDeposit / totalCurrent;
+    
+    // Get simulated values from inputs
+    const newReturn = parseFloat(document.getElementById('simReturn').value);
+    const newFeeAnnual = parseFloat(document.getElementById('simFeeAnnual').value);
+    const newFeeDeposit = parseFloat(document.getElementById('simFeeDeposit').value);
+    const years = parseInt(document.getElementById('simYears').value) || 20;
+    
+    // Calculate total monthly deposits
+    let totalMonthly = 0;
+    plan.investments.forEach(inv => {
+        if (!inv.include) return;
+        totalMonthly += inv.monthly || 0;
+    });
+    
+    // Calculate current scenario
+    const currentFV = calculateFV(
+        totalCurrent,
+        totalMonthly,
+        currentAvgReturn,
+        years,
+        currentAvgFeeDeposit,
+        currentAvgFeeAnnual,
+        null // no subTracks for aggregate
+    );
+    
+    // Calculate simulated scenario
+    const simulatedFV = calculateFV(
+        totalCurrent,
+        totalMonthly,
+        newReturn,
+        years,
+        newFeeDeposit,
+        newFeeAnnual,
+        null
+    );
+    
+    // Calculate difference
+    const difference = simulatedFV - currentFV;
+    const percentChange = ((difference / currentFV) * 100).toFixed(2);
+    
+    // Display results
+    const container = document.getElementById('simResults');
+    const color = difference >= 0 ? '#10b981' : '#ef4444';
+    const sign = difference >= 0 ? '+' : '';
+    
+    container.innerHTML = `
+        <div class="card" style="background: rgba(59, 130, 246, 0.1); border: 2px solid #3b82f6; margin-top: 20px;">
+            <div class="card-title">📊 תוצאות הסימולציה</div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px;">
+                <div style="text-align: center; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="font-size: 0.9em; color: #8b949e; margin-bottom: 8px;">מצב נוכחי</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: #f0f6fc;">
+                        ${formatCurrency(currentFV)}
+                    </div>
+                    <div style="font-size: 0.8em; color: #8b949e; margin-top: 4px;">
+                        תשואה: ${currentAvgReturn.toFixed(2)}%<br>
+                        דמ"נ: ${currentAvgFeeAnnual.toFixed(2)}% / ${currentAvgFeeDeposit.toFixed(2)}%
+                    </div>
+                </div>
+                
+                <div style="text-align: center; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="font-size: 0.9em; color: #8b949e; margin-bottom: 8px;">מצב משופר</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: ${color};">
+                        ${formatCurrency(simulatedFV)}
+                    </div>
+                    <div style="font-size: 0.8em; color: #8b949e; margin-top: 4px;">
+                        תשואה: ${newReturn.toFixed(2)}%<br>
+                        דמ"נ: ${newFeeAnnual.toFixed(2)}% / ${newFeeDeposit.toFixed(2)}%
+                    </div>
+                </div>
+                
+                <div style="text-align: center; padding: 16px; background: ${difference >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; border-radius: 8px; border: 2px solid ${color};">
+                    <div style="font-size: 0.9em; color: #8b949e; margin-bottom: 8px;">הבדל</div>
+                    <div style="font-size: 1.8em; font-weight: bold; color: ${color};">
+                        ${sign}${formatCurrency(Math.abs(difference))}
+                    </div>
+                    <div style="font-size: 1.2em; color: ${color}; margin-top: 4px;">
+                        ${sign}${percentChange}%
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 16px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border-left: 4px solid #f59e0b;">
+                <div style="font-weight: bold; color: #f59e0b; margin-bottom: 8px;">💡 פירוש התוצאה:</div>
+                <div style="color: #f0f6fc;">
+                    ${difference >= 0 
+                        ? `שיפור בתשואה או הקטנת דמי ניהול יגדילו את ההון שלך ב-<strong style="color: #10b981;">${formatCurrency(Math.abs(difference))}</strong> בעוד ${years} שנים.`
+                        : `הידרדרות בתשואה או הגדלת דמי ניהול יקטינו את ההון שלך ב-<strong style="color: #ef4444;">${formatCurrency(Math.abs(difference))}</strong> בעוד ${years} שנים.`
+                    }
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==========================================
 // CHARTS
 // ==========================================
 
@@ -1477,10 +1607,12 @@ function renderCharts() {
 
 function renderPieChart(canvasId, data, label) {
     const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
     
     // Destroy existing chart if exists
     if (charts[canvasId]) {
         charts[canvasId].destroy();
+        delete charts[canvasId];
     }
     
     const labels = Object.keys(data);
@@ -1488,9 +1620,24 @@ function renderPieChart(canvasId, data, label) {
     const total = values.reduce((sum, v) => sum + v, 0);
     
     if (total === 0) {
-        ctx.parentElement.innerHTML = '<div class="empty-state"><div class="empty-text">אין נתונים להצגה</div></div>';
+        // Hide canvas, show empty message - DON'T replace canvas with innerHTML!
+        ctx.style.display = 'none';
+        let emptyDiv = document.getElementById(canvasId + '_empty');
+        if (!emptyDiv) {
+            emptyDiv = document.createElement('div');
+            emptyDiv.id = canvasId + '_empty';
+            emptyDiv.className = 'empty-state';
+            emptyDiv.innerHTML = '<div class="empty-text">אין נתונים להצגה</div>';
+            ctx.parentElement.appendChild(emptyDiv);
+        }
+        emptyDiv.style.display = 'block';
         return;
     }
+    
+    // Show canvas, hide empty message
+    ctx.style.display = 'block';
+    const emptyDiv = document.getElementById(canvasId + '_empty');
+    if (emptyDiv) emptyDiv.style.display = 'none';
     
     charts[canvasId] = new Chart(ctx, {
         type: 'doughnut',
@@ -1509,6 +1656,7 @@ function renderPieChart(canvasId, data, label) {
         options: {
             responsive: true,
             maintainAspectRatio: true,
+            animation: { duration: 300 },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -1533,9 +1681,11 @@ function renderPieChart(canvasId, data, label) {
 
 function renderPieChartWithUniqueColors(canvasId, data, label) {
     const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
     
     if (charts[canvasId]) {
         charts[canvasId].destroy();
+        delete charts[canvasId];
     }
     
     const labels = Object.keys(data);
@@ -1543,9 +1693,22 @@ function renderPieChartWithUniqueColors(canvasId, data, label) {
     const total = values.reduce((sum, v) => sum + v, 0);
     
     if (total === 0) {
-        ctx.parentElement.innerHTML = '<div class="empty-state"><div class="empty-text">אין נתונים להצגה</div></div>';
+        ctx.style.display = 'none';
+        let emptyDiv = document.getElementById(canvasId + '_empty');
+        if (!emptyDiv) {
+            emptyDiv = document.createElement('div');
+            emptyDiv.id = canvasId + '_empty';
+            emptyDiv.className = 'empty-state';
+            emptyDiv.innerHTML = '<div class="empty-text">אין נתונים להצגה</div>';
+            ctx.parentElement.appendChild(emptyDiv);
+        }
+        emptyDiv.style.display = 'block';
         return;
     }
+    
+    ctx.style.display = 'block';
+    const emptyDiv = document.getElementById(canvasId + '_empty');
+    if (emptyDiv) emptyDiv.style.display = 'none';
     
     const colors = generateUniqueColors(labels.length);
     
@@ -1614,16 +1777,32 @@ function renderRiskPieChart(subTrackObjects) {
     const ctx = document.getElementById('chartByRisk');
     if (!ctx) return;
     
-    if (charts.chartByRisk) charts.chartByRisk.destroy();
+    if (charts.chartByRisk) {
+        charts.chartByRisk.destroy();
+        delete charts.chartByRisk;
+    }
     
     const labels = Object.keys(riskCategories);
     const values = Object.values(riskCategories);
     const total = values.reduce((sum, v) => sum + v, 0);
     
     if (total === 0) {
-        ctx.parentElement.innerHTML = '<div class="empty-state"><div class="empty-text">אין נתונים להצגה</div></div>';
+        ctx.style.display = 'none';
+        let emptyDiv = document.getElementById('chartByRisk_empty');
+        if (!emptyDiv) {
+            emptyDiv = document.createElement('div');
+            emptyDiv.id = 'chartByRisk_empty';
+            emptyDiv.className = 'empty-state';
+            emptyDiv.innerHTML = '<div class="empty-text">אין נתונים להצגה</div>';
+            ctx.parentElement.appendChild(emptyDiv);
+        }
+        emptyDiv.style.display = 'block';
         return;
     }
+    
+    ctx.style.display = 'block';
+    const emptyDivR = document.getElementById('chartByRisk_empty');
+    if (emptyDivR) emptyDivR.style.display = 'none';
     
     charts.chartByRisk = new Chart(ctx, {
         type: 'doughnut',
@@ -2573,10 +2752,10 @@ function renderTimeline(withdrawals) {
         const bgColor = isGoal ? 'rgba(59, 130, 246, 0.05)' : 'white';
         
         html += `
-            <div style="display: grid; grid-template-columns: 80px 1fr auto auto; gap: 12px; align-items: center; margin-bottom: 16px; padding: 16px; background: ${bgColor}; border-radius: 12px; border: 2px solid ${borderColor}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: grid; grid-template-columns: 80px 1fr 120px 140px; gap: 12px; align-items: center; margin-bottom: 16px; padding: 16px; background: ${bgColor}; border-radius: 12px; border: 2px solid ${borderColor}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <div style="text-align: center;">
                     <div style="font-size: 1.8em; font-weight: bold; color: ${borderColor};">${w.year}</div>
-                    <div style="font-size: 0.75em; color: #666;">בעוד ${yearsFromNow} שנים</div>
+                    <div style="font-size: 0.75em; color: #374151;">בעוד ${yearsFromNow} שנים</div>
                 </div>
                 <div>
                     <div style="font-size: 1.1em; font-weight: bold; color: #1f2937; margin-bottom: 4px;">
@@ -2594,7 +2773,7 @@ function renderTimeline(withdrawals) {
                                ${w.active !== false ? 'checked' : ''} 
                                onchange="toggleWithdrawal(${index})"
                                style="width: 20px; height: 20px; cursor: pointer;">
-                        <span style="font-size: 0.8em; color: #666; white-space: nowrap;">כלול בתחזית</span>
+                        <span style="font-size: 0.8em; color: #374151; white-space: nowrap;">כלול בתחזית</span>
                     </label>
                 </div>
                 <div style="display: flex; gap: 8px;">
@@ -2621,10 +2800,10 @@ function renderWithdrawalStrategies(withdrawals) {
     
     if (activeWithdrawals.length === 0) {
         container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #666;">
+            <div style="text-align: center; padding: 40px; color: #4b5563;">
                 <div style="font-size: 3em; margin-bottom: 16px;">📊</div>
                 <div style="font-size: 1.1em;">לא נבחרו משיכות לחישוב</div>
-                <div style="font-size: 0.9em; margin-top: 8px;">סמן את התיבה "כלול בתחזית" כדי לראות אסטרטגיה</div>
+                <div style="font-size: 0.9em; margin-top: 8px; color: #6b7280;">סמן את התיבה "כלול בתחזית" כדי לראות אסטרטגיה</div>
             </div>
         `;
         return;
@@ -3407,7 +3586,7 @@ function calculateNetPension(grossMonthly) {
 
 function renamePlan() {
     const currentPlanId = appData.currentPlanId;
-    const plan = appData.plans[currentPlanId];
+    const plan = appData.plans.find(p => p.id === currentPlanId);
     
     if (!plan) {
         alert('אנא בחר תוכנית תחילה');
@@ -3419,7 +3598,7 @@ function renamePlan() {
     
     plan.name = newName.trim();
     saveData();
-    renderPlanSelector();
+    updatePlanSelector();
 }
 
 
