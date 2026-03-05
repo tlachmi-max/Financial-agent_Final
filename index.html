@@ -614,6 +614,14 @@
                             <label style="white-space: nowrap;">שנים:</label>
                             <input type="number" class="form-input" id="projYears" value="30" min="5" max="50" style="width: 70px;">
                             <button class="btn btn-primary btn-sm" onclick="renderProjections()" style="padding: 6px 12px; font-size: 0.9em;">עדכן</button>
+                            <label style="white-space: nowrap; margin-right: 16px;">כל:</label>
+                            <select class="form-select" id="projInterval" style="width: 100px;" onchange="renderProjections()">
+                                <option value="1">שנה</option>
+                                <option value="2">שנתיים</option>
+                                <option value="3">3 שנים</option>
+                                <option value="5" selected>5 שנים</option>
+                                <option value="10">10 שנים</option>
+                            </select>
                         </div>
                     </div>
                     
