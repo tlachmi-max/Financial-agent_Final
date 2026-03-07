@@ -1,21 +1,21 @@
 // ==========================================
-// Financial Planner Pro v3.6 - Impact Simulator
-// Last Updated: 2026-03-05
-// Version: 3.6.0 - Impact simulator + yearly intervals
+// Financial Planner Pro v3.2 - ALL FIXES
+// Last Updated: 2025-02-13
+// Version: 3.2.0 - Pension Separate + iPhone Fix + Auto-fill
 // ==========================================
 
-console.log('🚀 VERSION 60.0 - IMPACT SIMULATOR');
+console.log('🚀 VERSION 40.0 - HARD RESET');
 
-console.log('🚀 Financial Planner Pro v3.6.0 Loading...');
+console.log('🚀 Financial Planner Pro v3.4.0 Loading...');
 
 // ==========================================
-// AGGRESSIVE CACHE CLEAR FOR v3.6.0
+// AGGRESSIVE CACHE CLEAR FOR v3.4.0
 // ==========================================
-const APP_VERSION = '3.6.0';
+const APP_VERSION = '3.6.2';
 const STORED_VERSION = localStorage.getItem('app_version');
 
 if (STORED_VERSION !== APP_VERSION) {
-    console.log('🔥 Version mismatch! Upgrading to v3.6.0 - Clearing all caches...');
+    console.log('🔥 Version mismatch! Clearing all caches...');
     
     // Clear all caches
     if ('caches' in window) {
@@ -48,9 +48,9 @@ if (STORED_VERSION !== APP_VERSION) {
 }
 
 console.log('✅ App version:', APP_VERSION);
-console.log('✅ Impact simulator added');
-console.log('✅ Yearly intervals for projections');
-console.log('✅ All bugs fixed');
+console.log('✅ Pension separate from capital');
+console.log('✅ iPhone plus button fixed');
+console.log('✅ Auto-fill return rate from dropdown');
 
 // Constants
 const INFLATION_RATE = 2;
@@ -525,14 +525,6 @@ function setupEventListeners() {
         document.getElementById('genderSection').style.display = this.value === 'פנסיה' ? 'block' : 'none';
     });
     
-    // Charts timeframe selector
-    const timeframeSelect = document.getElementById('chartsTimeframe');
-    if (timeframeSelect) {
-        timeframeSelect.addEventListener('change', function() {
-            renderCharts();
-        });
-    }
-    
     // Show/hide sub-tracks based on whether we're editing an investment
     document.getElementById('invAmount').addEventListener('input', function() {
         const section = document.getElementById('subTracksSection');
@@ -640,15 +632,10 @@ function switchPanel(panelId) {
         targetBtn.classList.add('active');
     }
 
-    // 4. הרצת עדכונים ספציפיים לכל טאב
+   // 4. הרצת עדכונים ספציפיים לכל טאב
     if (panelId === 'profile') renderChildren();
     if (panelId === 'goals') renderLifeGoals();
-    if (panelId === 'summary') renderSummary();
-    if (panelId === 'projections') renderProjections();
-    if (panelId === 'charts') {
-        // setTimeout נדרש ל-iPhone כדי שה-canvas יהיה מוכן
-        setTimeout(() => renderCharts(), 100);
-    }
+    if (panelId === 'summary') updateSummary();
     if (panelId === 'pension') {
         if (typeof renderPensionTab === 'function') renderPensionTab();
     }
@@ -1032,17 +1019,6 @@ function renderInvestments() {
             </div>
         `;
     }).join('');
-    
-    // Update pension tab if it exists
-    if (typeof renderPensionTab === 'function') {
-        renderPensionTab();
-    }
-    
-    // Update charts if charts panel is active
-    const chartsPanel = document.getElementById('charts');
-    if (chartsPanel && chartsPanel.classList.contains('active')) {
-        renderCharts();
-    }
 }
 
 // ==========================================
@@ -1408,132 +1384,6 @@ function renderSummary() {
 }
 
 // ==========================================
-// IMPACT SIMULATOR
-// ==========================================
-
-function simulateImpact() {
-    const plan = getCurrentPlan();
-    
-    // Get current averages
-    let totalCurrent = 0;
-    let totalWeightedReturn = 0;
-    let totalWeightedFeeAnnual = 0;
-    let totalWeightedFeeDeposit = 0;
-    
-    plan.investments.forEach(inv => {
-        if (!inv.include) return;
-        const amount = inv.amount || 0;
-        totalCurrent += amount;
-        totalWeightedReturn += amount * (inv.returnRate || 0);
-        totalWeightedFeeAnnual += amount * (inv.feeAnnual || 0);
-        totalWeightedFeeDeposit += amount * (inv.feeDeposit || 0);
-    });
-    
-    if (totalCurrent === 0) {
-        alert('אין מסלולי השקעה לסימולציה');
-        return;
-    }
-    
-    const currentAvgReturn = totalWeightedReturn / totalCurrent;
-    const currentAvgFeeAnnual = totalWeightedFeeAnnual / totalCurrent;
-    const currentAvgFeeDeposit = totalWeightedFeeDeposit / totalCurrent;
-    
-    // Get simulated values from inputs
-    const newReturn = parseFloat(document.getElementById('simReturn').value);
-    const newFeeAnnual = parseFloat(document.getElementById('simFeeAnnual').value);
-    const newFeeDeposit = parseFloat(document.getElementById('simFeeDeposit').value);
-    const years = parseInt(document.getElementById('simYears').value) || 20;
-    
-    // Calculate total monthly deposits
-    let totalMonthly = 0;
-    plan.investments.forEach(inv => {
-        if (!inv.include) return;
-        totalMonthly += inv.monthly || 0;
-    });
-    
-    // Calculate current scenario
-    const currentFV = calculateFV(
-        totalCurrent,
-        totalMonthly,
-        currentAvgReturn,
-        years,
-        currentAvgFeeDeposit,
-        currentAvgFeeAnnual,
-        null // no subTracks for aggregate
-    );
-    
-    // Calculate simulated scenario
-    const simulatedFV = calculateFV(
-        totalCurrent,
-        totalMonthly,
-        newReturn,
-        years,
-        newFeeDeposit,
-        newFeeAnnual,
-        null
-    );
-    
-    // Calculate difference
-    const difference = simulatedFV - currentFV;
-    const percentChange = ((difference / currentFV) * 100).toFixed(2);
-    
-    // Display results
-    const container = document.getElementById('simResults');
-    const color = difference >= 0 ? '#10b981' : '#ef4444';
-    const sign = difference >= 0 ? '+' : '';
-    
-    container.innerHTML = `
-        <div class="card" style="background: rgba(59, 130, 246, 0.1); border: 2px solid #3b82f6; margin-top: 20px;">
-            <div class="card-title">📊 תוצאות הסימולציה</div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px;">
-                <div style="text-align: center; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                    <div style="font-size: 0.9em; color: #8b949e; margin-bottom: 8px;">מצב נוכחי</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: #f0f6fc;">
-                        ${formatCurrency(currentFV)}
-                    </div>
-                    <div style="font-size: 0.8em; color: #8b949e; margin-top: 4px;">
-                        תשואה: ${currentAvgReturn.toFixed(2)}%<br>
-                        דמ"נ: ${currentAvgFeeAnnual.toFixed(2)}% / ${currentAvgFeeDeposit.toFixed(2)}%
-                    </div>
-                </div>
-                
-                <div style="text-align: center; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                    <div style="font-size: 0.9em; color: #8b949e; margin-bottom: 8px;">מצב משופר</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: ${color};">
-                        ${formatCurrency(simulatedFV)}
-                    </div>
-                    <div style="font-size: 0.8em; color: #8b949e; margin-top: 4px;">
-                        תשואה: ${newReturn.toFixed(2)}%<br>
-                        דמ"נ: ${newFeeAnnual.toFixed(2)}% / ${newFeeDeposit.toFixed(2)}%
-                    </div>
-                </div>
-                
-                <div style="text-align: center; padding: 16px; background: ${difference >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; border-radius: 8px; border: 2px solid ${color};">
-                    <div style="font-size: 0.9em; color: #8b949e; margin-bottom: 8px;">הבדל</div>
-                    <div style="font-size: 1.8em; font-weight: bold; color: ${color};">
-                        ${sign}${formatCurrency(Math.abs(difference))}
-                    </div>
-                    <div style="font-size: 1.2em; color: ${color}; margin-top: 4px;">
-                        ${sign}${percentChange}%
-                    </div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px; padding: 16px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border-left: 4px solid #f59e0b;">
-                <div style="font-weight: bold; color: #f59e0b; margin-bottom: 8px;">💡 פירוש התוצאה:</div>
-                <div style="color: #f0f6fc;">
-                    ${difference >= 0 
-                        ? `שיפור בתשואה או הקטנת דמי ניהול יגדילו את ההון שלך ב-<strong style="color: #10b981;">${formatCurrency(Math.abs(difference))}</strong> בעוד ${years} שנים.`
-                        : `הידרדרות בתשואה או הגדלת דמי ניהול יקטינו את ההון שלך ב-<strong style="color: #ef4444;">${formatCurrency(Math.abs(difference))}</strong> בעוד ${years} שנים.`
-                    }
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// ==========================================
 // CHARTS
 // ==========================================
 
@@ -1608,12 +1458,10 @@ function renderCharts() {
 
 function renderPieChart(canvasId, data, label) {
     const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
     
     // Destroy existing chart if exists
     if (charts[canvasId]) {
         charts[canvasId].destroy();
-        delete charts[canvasId];
     }
     
     const labels = Object.keys(data);
@@ -1621,24 +1469,9 @@ function renderPieChart(canvasId, data, label) {
     const total = values.reduce((sum, v) => sum + v, 0);
     
     if (total === 0) {
-        // Hide canvas, show empty message - DON'T replace canvas with innerHTML!
-        ctx.style.display = 'none';
-        let emptyDiv = document.getElementById(canvasId + '_empty');
-        if (!emptyDiv) {
-            emptyDiv = document.createElement('div');
-            emptyDiv.id = canvasId + '_empty';
-            emptyDiv.className = 'empty-state';
-            emptyDiv.innerHTML = '<div class="empty-text">אין נתונים להצגה</div>';
-            ctx.parentElement.appendChild(emptyDiv);
-        }
-        emptyDiv.style.display = 'block';
+        ctx.parentElement.innerHTML = '<div class="empty-state"><div class="empty-text">אין נתונים להצגה</div></div>';
         return;
     }
-    
-    // Show canvas, hide empty message
-    ctx.style.display = 'block';
-    const emptyDiv = document.getElementById(canvasId + '_empty');
-    if (emptyDiv) emptyDiv.style.display = 'none';
     
     charts[canvasId] = new Chart(ctx, {
         type: 'doughnut',
@@ -1657,7 +1490,6 @@ function renderPieChart(canvasId, data, label) {
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            animation: { duration: 300 },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -1682,11 +1514,9 @@ function renderPieChart(canvasId, data, label) {
 
 function renderPieChartWithUniqueColors(canvasId, data, label) {
     const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
     
     if (charts[canvasId]) {
         charts[canvasId].destroy();
-        delete charts[canvasId];
     }
     
     const labels = Object.keys(data);
@@ -1694,22 +1524,9 @@ function renderPieChartWithUniqueColors(canvasId, data, label) {
     const total = values.reduce((sum, v) => sum + v, 0);
     
     if (total === 0) {
-        ctx.style.display = 'none';
-        let emptyDiv = document.getElementById(canvasId + '_empty');
-        if (!emptyDiv) {
-            emptyDiv = document.createElement('div');
-            emptyDiv.id = canvasId + '_empty';
-            emptyDiv.className = 'empty-state';
-            emptyDiv.innerHTML = '<div class="empty-text">אין נתונים להצגה</div>';
-            ctx.parentElement.appendChild(emptyDiv);
-        }
-        emptyDiv.style.display = 'block';
+        ctx.parentElement.innerHTML = '<div class="empty-state"><div class="empty-text">אין נתונים להצגה</div></div>';
         return;
     }
-    
-    ctx.style.display = 'block';
-    const emptyDiv = document.getElementById(canvasId + '_empty');
-    if (emptyDiv) emptyDiv.style.display = 'none';
     
     const colors = generateUniqueColors(labels.length);
     
@@ -1778,32 +1595,16 @@ function renderRiskPieChart(subTrackObjects) {
     const ctx = document.getElementById('chartByRisk');
     if (!ctx) return;
     
-    if (charts.chartByRisk) {
-        charts.chartByRisk.destroy();
-        delete charts.chartByRisk;
-    }
+    if (charts.chartByRisk) charts.chartByRisk.destroy();
     
     const labels = Object.keys(riskCategories);
     const values = Object.values(riskCategories);
     const total = values.reduce((sum, v) => sum + v, 0);
     
     if (total === 0) {
-        ctx.style.display = 'none';
-        let emptyDiv = document.getElementById('chartByRisk_empty');
-        if (!emptyDiv) {
-            emptyDiv = document.createElement('div');
-            emptyDiv.id = 'chartByRisk_empty';
-            emptyDiv.className = 'empty-state';
-            emptyDiv.innerHTML = '<div class="empty-text">אין נתונים להצגה</div>';
-            ctx.parentElement.appendChild(emptyDiv);
-        }
-        emptyDiv.style.display = 'block';
+        ctx.parentElement.innerHTML = '<div class="empty-state"><div class="empty-text">אין נתונים להצגה</div></div>';
         return;
     }
-    
-    ctx.style.display = 'block';
-    const emptyDivR = document.getElementById('chartByRisk_empty');
-    if (emptyDivR) emptyDivR.style.display = 'none';
     
     charts.chartByRisk = new Chart(ctx, {
         type: 'doughnut',
@@ -1964,13 +1765,42 @@ function exportToPDF() {
 
 function exportToExcel() {
     const plan = getCurrentPlan();
-    const profile = plan.profile;
-    const goals = plan.goals;
+    const years = parseInt(document.getElementById('sumYears').value) || 20;
     
     try {
+        // Calculate analytics
+        const byType = {}, byHouse = {}, bySubTrack = {}, byRisk = {
+            'סיכון נמוך': 0, 'סיכון בינוני': 0, 'סיכון גבוה': 0
+        };
+        let total = 0;
+        
+        plan.investments.forEach(inv => {
+            if (!inv.include) return;
+            const value = calculateFV(inv.amount, inv.monthly, inv.returnRate, years,
+                                      inv.feeDeposit || 0, inv.feeAnnual || 0, inv.subTracks);
+            
+            byType[inv.type] = (byType[inv.type] || 0) + value;
+            byHouse[inv.house] = (byHouse[inv.house] || 0) + value;
+            
+            if (inv.subTracks && inv.subTracks.length > 0) {
+                inv.subTracks.forEach(st => {
+                    const subTrackValue = value * (st.percent / 100);
+                    bySubTrack[st.type] = (bySubTrack[st.type] || 0) + subTrackValue;
+                    
+                    const risk = classifyRisk(st.type);
+                    if (risk === 'low') byRisk['סיכון נמוך'] += subTrackValue;
+                    else if (risk === 'medium') byRisk['סיכון בינוני'] += subTrackValue;
+                    else if (risk === 'high') byRisk['סיכון גבוה'] += subTrackValue;
+                    // Skip undefined
+                });
+            }
+            
+            total += value;
+        });
+        
         const wb = XLSX.utils.book_new();
         
-        // Sheet 1: Investments
+        // Sheet 1: Investments with subTracks
         const invData = plan.investments.map(inv => ({
             'שם': inv.name,
             'סוג': inv.type,
@@ -1978,83 +1808,64 @@ function exportToExcel() {
             'סכום נוכחי': inv.amount,
             'הפקדה חודשית': inv.monthly,
             'תשואה %': inv.returnRate,
-            'מס %': inv.tax || 0,
-            'דמי ניהול הפקדה %': inv.feeDeposit || 0,
-            'דמי ניהול צבירה %': inv.feeAnnual || 0,
-            'כלול': inv.include ? 'כן' : 'לא',
-            'בן/בת זוג': inv.spouse || '',
-            'גיל': inv.age || '',
-            'מגדר': inv.gender || '',
-            'תתי-מסלולים': inv.subTracks ? JSON.stringify(inv.subTracks) : ''
+            'מס %': inv.tax,
+            'דמי ניהול הפקדה %': inv.feeDeposit,
+            'דמי ניהול צבירה %': inv.feeAnnual,
+            'תתי-מסלולים': inv.subTracks ? JSON.stringify(inv.subTracks) : '',
+            'כלול': inv.include ? 'כן' : 'לא'
         }));
         const ws1 = XLSX.utils.json_to_sheet(invData);
         XLSX.utils.book_append_sheet(wb, ws1, 'מסלולי השקעה');
         
-        // Sheet 2: Profile
-        const profileData = [
-            { 'שדה': 'שם משתמש', 'ערך': profile.user.name || '' },
-            { 'שדה': 'גיל משתמש', 'ערך': profile.user.age || '' },
-            { 'שדה': 'שם בן/בת זוג', 'ערך': profile.spouse.name || '' },
-            { 'שדה': 'גיל בן/בת זוג', 'ערך': profile.spouse.age || '' },
-            { 'שדה': 'מספר ילדים', 'ערך': profile.children.length }
-        ];
-        profile.children.forEach((child, i) => {
-            profileData.push({ 'שדה': `ילד ${i+1} - שם`, 'ערך': child.name });
-            profileData.push({ 'שדה': `ילד ${i+1} - גיל`, 'ערך': child.age });
-        });
-        const ws2 = XLSX.utils.json_to_sheet(profileData);
-        XLSX.utils.book_append_sheet(wb, ws2, 'פרופיל');
+        // Sheet 2: Dreams with sources
+        const dreamData = plan.dreams.map(d => ({
+            'שם': d.name,
+            'עלות': d.cost,
+            'שנת יעד': d.year,
+            'מקורות': d.sources ? d.sources.join(', ') : ''
+        }));
+        const ws2 = XLSX.utils.json_to_sheet(dreamData);
+        XLSX.utils.book_append_sheet(wb, ws2, 'חלומות');
         
-        // Sheet 3: Goals - Retirement
-        const retirementData = [{
-            'סוג יעד': 'פרישה',
-            'גיל משתמש': goals.retirement.userAge || '',
-            'גיל בן/בת זוג': goals.retirement.spouseAge || '',
-            'קצבה חודשית': goals.retirement.monthlyPension || '',
-            'ערך ריאלי': goals.retirement.isRealValue ? 'כן' : 'לא'
-        }];
-        const ws3 = XLSX.utils.json_to_sheet(retirementData);
-        XLSX.utils.book_append_sheet(wb, ws3, 'יעד פרישה');
+        // Sheet 3: Analytics - By Type
+        const typeData = Object.entries(byType).map(([name, value]) => ({
+            'סוג מסלול': name,
+            'סכום': Math.round(value),
+            'אחוז מהתיק': ((value / total) * 100).toFixed(2) + '%'
+        }));
+        const ws3 = XLSX.utils.json_to_sheet(typeData);
+        XLSX.utils.book_append_sheet(wb, ws3, 'ניתוח - סוגים');
         
-        // Sheet 4: Goals - Equity
-        const equityData = [{
-            'סוג יעד': 'הון עצמי',
-            'סכום יעד': goals.equity.targetAmount || '',
-            'שנת יעד': goals.equity.targetYear || ''
-        }];
-        const ws4 = XLSX.utils.json_to_sheet(equityData);
-        XLSX.utils.book_append_sheet(wb, ws4, 'יעד הון');
+        // Sheet 4: Analytics - By House
+        const houseData = Object.entries(byHouse).map(([name, value]) => ({
+            'בית השקעות': name,
+            'סכום': Math.round(value),
+            'אחוז מהתיק': ((value / total) * 100).toFixed(2) + '%'
+        }));
+        const ws4 = XLSX.utils.json_to_sheet(houseData);
+        XLSX.utils.book_append_sheet(wb, ws4, 'ניתוח - בתי השקעות');
         
-        // Sheet 5: Life Goals
-        if (goals.lifeGoals && goals.lifeGoals.length > 0) {
-            const lifeGoalsData = goals.lifeGoals.map(g => ({
-                'שם': g.name,
-                'סכום': g.amount,
-                'שנה': g.year,
-                'ID': g.id || ''
+        // Sheet 5: Analytics - By SubTrack
+        const subTrackData = Object.entries(bySubTrack).map(([name, value]) => ({
+            'תת-מסלול': name,
+            'סכום': Math.round(value),
+            'אחוז מהתיק': ((value / total) * 100).toFixed(2) + '%'
+        }));
+        const ws5 = XLSX.utils.json_to_sheet(subTrackData);
+        XLSX.utils.book_append_sheet(wb, ws5, 'ניתוח - תתי מסלולים');
+        
+        // Sheet 6: Analytics - By Risk
+        const riskData = Object.entries(byRisk)
+            .filter(([, value]) => value > 0)
+            .map(([name, value]) => ({
+                'רמת סיכון': name,
+                'סכום': Math.round(value),
+                'אחוז מהתיק': ((value / total) * 100).toFixed(2) + '%'
             }));
-            const ws5 = XLSX.utils.json_to_sheet(lifeGoalsData);
-            XLSX.utils.book_append_sheet(wb, ws5, 'יעדי חיים');
-        }
+        const ws6 = XLSX.utils.json_to_sheet(riskData);
+        XLSX.utils.book_append_sheet(wb, ws6, 'ניתוח - סיכונים');
         
-        // Sheet 6: Roadmap (Withdrawals)
-        if (plan.withdrawals && plan.withdrawals.length > 0) {
-            const withdrawalsData = plan.withdrawals.map(w => ({
-                'שנה': w.year,
-                'סכום': w.amount,
-                'מטרה': w.goal || '',
-                'מקושר ליעד ID': w.goalId || '',
-                'פעיל': w.active === false ? 'לא' : 'כן'
-            }));
-            const ws6 = XLSX.utils.json_to_sheet(withdrawalsData);
-            XLSX.utils.book_append_sheet(wb, ws6, 'מפת דרכים');
-        }
-        
-        // Generate filename with date
-        const now = new Date();
-        const filename = `${plan.name}_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}.xlsx`;
-        
-        XLSX.writeFile(wb, filename);
+        XLSX.writeFile(wb, `${plan.name}_${new Date().toISOString().split('T')[0]}.xlsx`);
     } catch (e) {
         console.error('Excel export error:', e);
         alert('שגיאה בייצוא ל-Excel: ' + e.message);
@@ -2271,11 +2082,9 @@ function importExcel(event) {
             }
             
             saveData();
-            syncLifeGoalsToRoadmap();
             renderWithdrawals();
             renderInvestments();
             renderSummary();
-            if (typeof renderPensionTab === 'function') renderPensionTab();  // ← הוספתי!
             
             alert('✅ כל הנתונים יובאו בהצלחה!\n- השקעות\n- פרופיל\n- יעדים\n- מפת דרכים');
         } catch (e) {
@@ -2294,7 +2103,6 @@ function importExcel(event) {
 function render() {
     renderInvestments();
     updateDreamSources();
-    renderWithdrawals();  // ← הוספתי!
 }
 
 // ==========================================
@@ -2753,10 +2561,10 @@ function renderTimeline(withdrawals) {
         const bgColor = isGoal ? 'rgba(59, 130, 246, 0.05)' : 'white';
         
         html += `
-            <div style="display: grid; grid-template-columns: 80px 1fr 120px 140px; gap: 12px; align-items: center; margin-bottom: 16px; padding: 16px; background: ${bgColor}; border-radius: 12px; border: 2px solid ${borderColor}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: grid; grid-template-columns: 80px 1fr auto auto; gap: 12px; align-items: center; margin-bottom: 16px; padding: 16px; background: ${bgColor}; border-radius: 12px; border: 2px solid ${borderColor}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <div style="text-align: center;">
                     <div style="font-size: 1.8em; font-weight: bold; color: ${borderColor};">${w.year}</div>
-                    <div style="font-size: 0.75em; color: #374151;">בעוד ${yearsFromNow} שנים</div>
+                    <div style="font-size: 0.75em; color: #666;">בעוד ${yearsFromNow} שנים</div>
                 </div>
                 <div>
                     <div style="font-size: 1.1em; font-weight: bold; color: #1f2937; margin-bottom: 4px;">
@@ -2774,7 +2582,7 @@ function renderTimeline(withdrawals) {
                                ${w.active !== false ? 'checked' : ''} 
                                onchange="toggleWithdrawal(${index})"
                                style="width: 20px; height: 20px; cursor: pointer;">
-                        <span style="font-size: 0.8em; color: #374151; white-space: nowrap;">כלול בתחזית</span>
+                        <span style="font-size: 0.8em; color: #666; white-space: nowrap;">כלול בתחזית</span>
                     </label>
                 </div>
                 <div style="display: flex; gap: 8px;">
@@ -2801,10 +2609,10 @@ function renderWithdrawalStrategies(withdrawals) {
     
     if (activeWithdrawals.length === 0) {
         container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #4b5563;">
+            <div style="text-align: center; padding: 40px; color: #666;">
                 <div style="font-size: 3em; margin-bottom: 16px;">📊</div>
                 <div style="font-size: 1.1em;">לא נבחרו משיכות לחישוב</div>
-                <div style="font-size: 0.9em; margin-top: 8px; color: #6b7280;">סמן את התיבה "כלול בתחזית" כדי לראות אסטרטגיה</div>
+                <div style="font-size: 0.9em; margin-top: 8px;">סמן את התיבה "כלול בתחזית" כדי לראות אסטרטגיה</div>
             </div>
         `;
         return;
@@ -3587,7 +3395,7 @@ function calculateNetPension(grossMonthly) {
 
 function renamePlan() {
     const currentPlanId = appData.currentPlanId;
-    const plan = appData.plans.find(p => p.id === currentPlanId);
+    const plan = appData.plans[currentPlanId];
     
     if (!plan) {
         alert('אנא בחר תוכנית תחילה');
@@ -3599,7 +3407,7 @@ function renamePlan() {
     
     plan.name = newName.trim();
     saveData();
-    updatePlanSelector();
+    renderPlanSelector();
 }
 
 
@@ -3766,32 +3574,10 @@ function addChild() {
     renderChildren();
 }
 
-function deleteChild(index) {
+function removeChild(index) {
     if (!confirm('האם למחוק את הילד/ה?')) return;
     
-    getCurrentPlan().profile.children.splice(index, 1);
-    saveData();
-    renderChildren();
-}
-
-function editChild(index) {
-    const child = getCurrentPlan().profile.children[index];
-    
-    const name = prompt('שם הילד/ה:', child.name);
-    if (!name || name.trim() === '') return;
-    
-    const ageStr = prompt('גיל הילד/ה:', child.age);
-    const age = parseInt(ageStr);
-    if (isNaN(age) || age < 0 || age > 30) {
-        alert('גיל לא תקין');
-        return;
-    }
-    
-    const currentYear = new Date().getFullYear();
-    child.name = name.trim();
-    child.age = age;
-    child.birthYear = currentYear - age;
-    
+   getCurrentPlan().profile.children.splice(index, 1);
     saveData();
     renderChildren();
 }
@@ -3800,7 +3586,7 @@ function renderChildren() {
     const container = document.getElementById('childrenList');
     if (!container) return; // Container not loaded yet
     
-    const children = getCurrentPlan().profile.children;
+    const children =getCurrentPlan().profile.children;
     
     if (children.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="empty-text">לא הוגדרו ילדים</div></div>';
@@ -3815,14 +3601,9 @@ function renderChildren() {
                     <div style="font-weight: bold; font-size: 1.1em;">${child.name}</div>
                     <div style="font-size: 0.9em; color: #666;">גיל ${child.age} (נולד ב-${child.birthYear})</div>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-sm btn-primary" onclick="editChild(${index})">
-                        ✏️ ערוך
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteChild(${index})">
-                        🗑️ מחק
-                    </button>
-                </div>
+                <button class="btn btn-sm btn-danger" onclick="removeChild(${index})">
+                    🗑️ מחק
+                </button>
             </div>
         `;
     });
@@ -3961,8 +3742,6 @@ function addLifeGoal() {
     getCurrentPlan().goals.lifeGoals.push(goal);
     saveData();
     syncLifeGoalsToRoadmap();
-    renderLifeGoals();
-    renderWithdrawals();  // ← הוספתי!
     showSaveNotification('✅ היעד נוסף ונשמר במפת דרכים!');
 }
 
@@ -3972,21 +3751,10 @@ function removeLifeGoal(index) {
     getCurrentPlan().goals.lifeGoals.splice(index, 1);
     saveData();
     syncLifeGoalsToRoadmap();
-    renderLifeGoals();
-    renderWithdrawals();  // ← הוספתי!
     showSaveNotification('✅ היעד נמחק מהיעדים ומהמפת דרכים');
 }
 
-function renderLifeGoals() {
-    const container = document.getElementById('lifeGoalsList');
-    if (!container) return;
-    
-    const goals = getCurrentPlan().goals.lifeGoals;
-    
-    if (goals.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-text">לא הוגדרו יעדים</div></div>';
-        return;
-    }
+
     
     let html = '<div style="display: grid; gap: 12px;">';
     goals.forEach((goal, index) => {
@@ -4043,8 +3811,6 @@ function editLifeGoal(index) {
     
     saveData();
     syncLifeGoalsToRoadmap();
-    renderLifeGoals();
-    renderWithdrawals();  // ← הוספתי!
     showSaveNotification('✅ היעד עודכן בהצלחה!');
 }
 
@@ -4064,7 +3830,6 @@ function saveGoals() {
     
     saveData();
     syncLifeGoalsToRoadmap();
-    renderWithdrawals();  // ← הוספתי!
     
     // Visual feedback
     showSaveNotification('✅ היעדים נשמרו ומסונכרנו עם מפת דרכים!');
@@ -4234,18 +3999,18 @@ function renderGoalProgress() {
         const icon = p.status === 'success' ? '✅' : p.status === 'warning' ? '🟡' : '🔴';
         
         html += `
-            <div style="background: rgba(255,255,255,0.25); padding: 16px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="font-weight: bold; font-size: 1.1em; color: #1f2937;">💰 קצבה חודשית (ריאלי אחרי מס)</div>
+                    <div style="font-weight: bold; font-size: 1.1em;">💰 קצבה חודשית (ריאלי אחרי מס)</div>
                     <div style="font-size: 1.3em;">${icon}</div>
                 </div>
-                <div style="font-size: 0.9em; color: #374151; margin-bottom: 8px;">
+                <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
                     יעד: ${formatCurrency(p.target)}/חודש | צפי: ${formatCurrency(p.projected)}/חודש
                 </div>
                 <div style="background: rgba(0,0,0,0.2); height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 8px;">
                     <div style="background: ${color}; height: 100%; width: ${p.percentage}%; transition: width 0.3s;"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.85em; color: #4b5563;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
                     <span>צפי: ${p.percentage.toFixed(0)}%</span>
                     <span>${p.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(p.gap))}/חודש</span>
                 </div>
@@ -4260,18 +4025,18 @@ function renderGoalProgress() {
         const icon = e.status === 'success' ? '✅' : e.status === 'warning' ? '🟡' : '🔴';
         
         html += `
-            <div style="background: rgba(255,255,255,0.25); padding: 16px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="font-weight: bold; font-size: 1.1em; color: #1f2937;">💎 הון עצמי</div>
+                    <div style="font-weight: bold; font-size: 1.1em;">💎 הון עצמי</div>
                     <div style="font-size: 1.3em;">${icon}</div>
                 </div>
-                <div style="font-size: 0.9em; color: #374151; margin-bottom: 8px;">
+                <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
                     יעד: ${formatCurrency(e.target)} | צפי: ${formatCurrency(e.projected)}
                 </div>
                 <div style="background: rgba(0,0,0,0.2); height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 8px;">
                     <div style="background: ${color}; height: 100%; width: ${e.percentage}%; transition: width 0.3s;"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.85em; color: #4b5563;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
                     <span>${e.percentage.toFixed(0)}% צפי</span>
                     <span>${e.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(e.gap))}</span>
                 </div>
@@ -4286,18 +4051,18 @@ function renderGoalProgress() {
             const icon = lg.status === 'success' ? '✅' : lg.status === 'warning' ? '🟡' : '🔴';
             
             html += `
-                <div style="background: rgba(255,255,255,0.25); padding: 16px; border-radius: 8px;">
+                <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <div style="font-weight: bold; font-size: 1.1em; color: #1f2937;">🎯 ${lg.name}</div>
+                        <div style="font-weight: bold; font-size: 1.1em;">🎯 ${lg.name}</div>
                         <div style="font-size: 1.3em;">${icon}</div>
                     </div>
-                    <div style="font-size: 0.9em; color: #374151; margin-bottom: 8px;">
+                    <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
                         יעד: ${formatCurrency(lg.target)} ב-${lg.year} | צפי: ${formatCurrency(lg.projected)}
                     </div>
                     <div style="background: rgba(0,0,0,0.2); height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 8px;">
                         <div style="background: ${color}; height: 100%; width: ${lg.percentage}%; transition: width 0.3s;"></div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.85em; color: #4b5563;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
                         <span>${lg.percentage.toFixed(0)}% צפי</span>
                         <span>${lg.gap > 0 ? 'חסר' : 'עודף'}: ${formatCurrency(Math.abs(lg.gap))}</span>
                     </div>
@@ -4767,11 +4532,8 @@ function generateAnalysisReport() {
         });
     }
     
-    // Get selected interval from projections tab (default 5)
-    const interval = parseInt(document.getElementById('projInterval')?.value) || 5;
-    
     // Generate HTML
-    const html = generateAnalysisHTML(yearlyData, goals, profile, interval);
+    const html = generateAnalysisHTML(yearlyData, goals, profile);
     
     // Open in new window
     const reportWindow = window.open('', '_blank', 'width=1200,height=800');
@@ -4779,7 +4541,7 @@ function generateAnalysisReport() {
     reportWindow.document.close();
 }
 
-function generateAnalysisHTML(yearlyData, goals, profile, interval = 5) {
+function generateAnalysisHTML(yearlyData, goals, profile) {
     const analysis = analyzeGoals();
     const recommendations = generateRecommendations(analysis);
     const plan = getCurrentPlan();
@@ -5049,10 +4811,6 @@ function generateAnalysisHTML(yearlyData, goals, profile, interval = 5) {
         <!-- Yearly Table -->
         <div class="section">
             <div class="section-title">📋 פירוט שנתי</div>
-            <p style="color: #666; margin-bottom: 16px; font-size: 0.95em;">
-                מרווח: כל ${interval === 1 ? 'שנה' : interval === 2 ? 'שנתיים' : `${interval} שנים`} 
-                (+ שנים עם משיכות ושנות יעד)
-            </p>
             <table>
                 <thead>
                     <tr>
@@ -5066,11 +4824,7 @@ function generateAnalysisHTML(yearlyData, goals, profile, interval = 5) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${yearlyData.filter((d, i) => {
-                        // Show if: it's at the interval, OR has withdrawals, OR is a goal year
-                        const yearsSinceStart = d.year - yearlyData[0].year;
-                        return yearsSinceStart % interval === 0 || d.withdrawals > 0 || d.isGoalYear;
-                    }).map(d => {
+                    ${yearlyData.filter((d, i) => i % 5 === 0 || d.withdrawals > 0 || d.isGoalYear).map(d => {
                         const purposes = d.withdrawalsList && d.withdrawalsList.length > 0 
                             ? d.withdrawalsList.map(w => w.goal).join(', ')
                             : '-';
