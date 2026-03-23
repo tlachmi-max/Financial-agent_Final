@@ -1,0 +1,239 @@
+/* ============================================================
+   dashboard-upgrade.css v9
+   Square Quick-Access Cards + Profile FAB
+   ============================================================ */
+
+/* === PROFILE FAB === */
+.profile-fab {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    color: #FFFFFF;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+    position: relative;
+    flex-shrink: 0;
+    font-family: inherit;
+}
+.profile-fab:hover {
+    background: rgba(255,255,255,0.28);
+    border-color: rgba(255,255,255,0.5);
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+.profile-fab:active { transform: scale(0.96); }
+.profile-fab svg { width: 22px; height: 22px; stroke: #FFFFFF; fill: none; stroke-width: 1.8; }
+.profile-fab::after {
+    content: 'הפרופיל שלנו';
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 50%; transform: translateX(50%);
+    background: var(--brand-deep, #0C2340);
+    color: white; padding: 5px 12px; border-radius: 8px;
+    font-size: 0.72em; font-weight: 600; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.profile-fab:hover::after { opacity: 1; }
+
+/* === QA SECTION === */
+.qa-section { margin-bottom: 28px; }
+.qa-section-title {
+    font-size: 0.88em; font-weight: 700;
+    color: var(--text-secondary, #4B5563);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 16px; padding-right: 4px;
+    display: flex; align-items: center; gap: 8px;
+}
+.qa-section-title::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border, #E5E7EB), transparent);
+}
+
+/* === QA GRID — 2x2 === */
+.qa-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+/* === QA CARD — Square, centered, premium === */
+.qa-card {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: #FFFFFF;
+    border: 1px solid var(--border, #E5E7EB);
+    border-radius: 20px;
+    padding: 24px 20px 20px;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06);
+}
+
+/* Subtle gradient bg per accent */
+.qa-card[data-accent="blue"]   { background: linear-gradient(160deg, #FFFFFF 60%, #EFF6FF 100%); }
+.qa-card[data-accent="green"]  { background: linear-gradient(160deg, #FFFFFF 60%, #ECFDF5 100%); }
+.qa-card[data-accent="amber"]  { background: linear-gradient(160deg, #FFFFFF 60%, #FFFBEB 100%); }
+.qa-card[data-accent="purple"] { background: linear-gradient(160deg, #FFFFFF 60%, #F5F3FF 100%); }
+
+/* Bottom accent line */
+.qa-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0; left: 0;
+    height: 4px;
+    border-radius: 0 0 20px 20px;
+    transition: height 0.3s ease;
+}
+.qa-card[data-accent="blue"]::before   { background: linear-gradient(90deg, #1E40AF, #60A5FA); }
+.qa-card[data-accent="green"]::before  { background: linear-gradient(90deg, #059669, #6EE7B7); }
+.qa-card[data-accent="amber"]::before  { background: linear-gradient(90deg, #D97706, #FCD34D); }
+.qa-card[data-accent="purple"]::before { background: linear-gradient(90deg, #7C3AED, #C4B5FD); }
+
+/* Hover lift */
+.qa-card:hover {
+    border-color: transparent;
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+}
+.qa-card:hover::before { height: 5px; }
+.qa-card:active { transform: translateY(-1px) scale(1.0); }
+
+/* Decorative corner glow */
+.qa-card::after {
+    content: '';
+    position: absolute;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    top: -60px; left: -60px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.qa-card[data-accent="blue"]::after   { background: radial-gradient(circle, rgba(59,130,246,0.07), transparent 70%); }
+.qa-card[data-accent="green"]::after  { background: radial-gradient(circle, rgba(16,185,129,0.07), transparent 70%); }
+.qa-card[data-accent="amber"]::after  { background: radial-gradient(circle, rgba(245,158,11,0.07), transparent 70%); }
+.qa-card[data-accent="purple"]::after { background: radial-gradient(circle, rgba(124,58,237,0.07), transparent 70%); }
+.qa-card:hover::after { opacity: 1; }
+
+/* === ICON — large, centered, soft shadow === */
+.qa-icon {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.qa-card:hover .qa-icon {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+.qa-icon svg { width: 30px; height: 30px; stroke-width: 1.8; fill: none; }
+
+.qa-icon-blue   { background: linear-gradient(135deg, #DBEAFE, #EFF6FF); }
+.qa-icon-blue svg   { stroke: #1E40AF; }
+.qa-icon-green  { background: linear-gradient(135deg, #D1FAE5, #ECFDF5); }
+.qa-icon-green svg  { stroke: #047857; }
+.qa-icon-amber  { background: linear-gradient(135deg, #FDE68A, #FFFBEB); }
+.qa-icon-amber svg  { stroke: #B45309; }
+.qa-icon-purple { background: linear-gradient(135deg, #DDD6FE, #F5F3FF); }
+.qa-icon-purple svg { stroke: #6D28D9; }
+
+/* === TEXT — centered === */
+.qa-title {
+    font-size: 1.05em; font-weight: 800;
+    color: var(--text-primary, #1F2937);
+    line-height: 1.3;
+}
+.qa-desc {
+    font-size: 0.78em;
+    color: var(--text-secondary, #6B7280);
+    line-height: 1.5;
+    max-width: 180px;
+}
+
+/* Arrow — bottom center on hover */
+.qa-arrow {
+    position: absolute;
+    bottom: 14px;
+    font-size: 0.78em; font-weight: 700;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+.qa-card[data-accent="blue"]   .qa-arrow { color: #1E40AF; }
+.qa-card[data-accent="green"]  .qa-arrow { color: #059669; }
+.qa-card[data-accent="amber"]  .qa-arrow { color: #B45309; }
+.qa-card[data-accent="purple"] .qa-arrow { color: #6D28D9; }
+.qa-card:hover .qa-arrow { opacity: 1; }
+
+/* Metric badge */
+.qa-metric {
+    position: absolute;
+    top: 14px; left: 14px;
+    font-size: 0.72em; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    background: var(--success-bg, #ECFDF5);
+    color: var(--success, #059669);
+    border: 1px solid var(--success-border, #A7F3D0);
+    opacity: 0.85; transition: opacity 0.25s;
+}
+.qa-card:hover .qa-metric { opacity: 1; }
+
+/* === SECONDARY GRID === */
+.qa-secondary-label {
+    font-size: 0.82em; font-weight: 600;
+    color: var(--text-muted, #9CA3AF);
+    margin: 8px 0 14px 0; padding-right: 4px;
+    display: flex; align-items: center; gap: 8px;
+}
+.qa-secondary-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border-light, #F3F4F6), transparent);
+}
+.launch-card[data-module="profile"] { display: none; }
+
+/* === ANIMATIONS === */
+@keyframes qaCardIn {
+    from { opacity: 0; transform: translateY(24px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.qa-card { animation: qaCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.qa-card:nth-child(1) { animation-delay: 0.05s; }
+.qa-card:nth-child(2) { animation-delay: 0.12s; }
+.qa-card:nth-child(3) { animation-delay: 0.19s; }
+.qa-card:nth-child(4) { animation-delay: 0.26s; }
+
+@keyframes profileFabIn {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.profile-fab { animation: profileFabIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s backwards; }
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .qa-grid { gap: 10px; }
+    .qa-card { padding: 18px 14px 16px; border-radius: 16px; gap: 8px; }
+    .qa-icon { width: 52px; height: 52px; border-radius: 14px; }
+    .qa-icon svg { width: 26px; height: 26px; }
+    .qa-title { font-size: 0.95em; }
+    .qa-desc { font-size: 0.72em; max-width: 140px; }
+    .qa-metric { font-size: 0.65em; padding: 2px 7px; top: 10px; left: 10px; }
+    .profile-fab { width: 40px; height: 40px; }
+    .profile-fab svg { width: 20px; height: 20px; }
+    .profile-fab::after { display: none; }
+}
+@media (max-width: 400px) {
+    .qa-card { aspect-ratio: auto; min-height: 130px; }
+    .qa-desc { display: none; }
+}
